@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'features/user_courses/screens/user_courses_screen.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'features/categories/category_crud_screen.dart';
 
