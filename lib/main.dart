@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:peer_assessment_app___mobile___flutter/features/auth/login_screen.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'features/categories/category_crud_screen.dart';
 
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const CategoryCrudScreen(),
+      home: const LoginScreen(),
     );
   }
 }
