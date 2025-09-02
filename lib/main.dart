@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'features/user_courses/screens/user_courses_screen.dart';
+import 'features/splash/screens/splash_screen.dart';
+import 'features/categories/category_crud_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +22,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const UserCoursesScreen(),
+      home: const CategoryCrudScreen(),
     );
   }
 }
