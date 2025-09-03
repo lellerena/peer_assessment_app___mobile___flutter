@@ -15,7 +15,9 @@ class UserCoursesScreen extends StatelessWidget {
         final userCourses = controller.userCourses;
 
         if (userCourses.isEmpty) {
-          return const Center(child: Text('No estás inscrito en ningún curso.'));
+          return const Center(
+            child: Text('No estás inscrito en ningún curso.'),
+          );
         }
 
         return ListView.builder(
@@ -28,7 +30,9 @@ class UserCoursesScreen extends StatelessWidget {
                 title: Text(course.name),
                 subtitle: Text("ID: ${course.id}"),
                 onTap: () {
-                  final enrolled = controller.getUsersFromIds(course.enrolledUserIds);
+                  final enrolled = controller.getUsersFromIds(
+                    course.enrolledUserIds ?? [],
+                  );
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -36,10 +40,12 @@ class UserCoursesScreen extends StatelessWidget {
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: enrolled
-                            .map((u) => ListTile(
-                                  title: Text(u.name),
-                                  subtitle: Text(u.id),
-                                ))
+                            .map(
+                              (u) => ListTile(
+                                title: Text(u.name),
+                                subtitle: Text(u.id),
+                              ),
+                            )
                             .toList(),
                       ),
                       actions: [

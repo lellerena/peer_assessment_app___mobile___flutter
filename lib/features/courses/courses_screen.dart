@@ -63,7 +63,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 final c = courses[i];
                 return ListTile(
                   title: Text(c.name),
-                  subtitle: Text(c.description),
+                  subtitle: Text(c.description ?? ''),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
