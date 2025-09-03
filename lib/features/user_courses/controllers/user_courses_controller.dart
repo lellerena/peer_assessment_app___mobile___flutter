@@ -5,7 +5,7 @@ import '../dummy_data.dart';
 
 class UserCoursesController extends GetxController {
   // Usuario actual simulado
-  final currentUser = User(id: 'u1', name: 'Jhon').obs;
+  final currentUser = User(id: 'u1', name: 'Jhon', email: '', password: '').obs;
 
   var courses = dummyCourses.obs;
   var users = dummyUsers.obs;
@@ -13,7 +13,9 @@ class UserCoursesController extends GetxController {
   // Cursos donde el usuario está inscrito
   List<Course> get userCourses {
     return courses
-        .where((c) => c.enrolledUserIds.contains(currentUser.value.id))
+        .where(
+          (c) => c.enrolledUserIds?.contains(currentUser.value.id) ?? false,
+        )
         .toList();
   }
 
