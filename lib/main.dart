@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:peer_assessment_app___mobile___flutter/features/auth/login_screen.dart';
 import 'features/user_courses/screens/user_courses_screen.dart';
-import 'features/splash/screens/splash_screen.dart';
+import 'features/splash/ui/pages/splash_page.dart';
 import 'features/categories/category_crud_screen.dart';
 import 'features/courses/courses_screen.dart';
 
