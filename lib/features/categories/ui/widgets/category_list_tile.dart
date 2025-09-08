@@ -1,0 +1,58 @@
+import 'package:flutter/material.dart';
+import '../../domain/models/category.dart';
+
+class CategoryListTile extends StatelessWidget {
+  final Category category;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const CategoryListTile({
+    super.key,
+    required this.category,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      elevation: 2.0,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: colorScheme.primaryContainer,
+          child: Text(
+            category.name.substring(0, 1).toUpperCase(),
+            style: TextStyle(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          category.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          'Grouping: ${category.groupingMethod.name} / Size: ${category.groupSize}',
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.edit, color: colorScheme.secondary),
+              onPressed: onEdit,
+              tooltip: 'Edit',
+            ),
+            IconButton(
+              icon: Icon(Icons.delete, color: colorScheme.error),
+              onPressed: onDelete,
+              tooltip: 'Delete',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
