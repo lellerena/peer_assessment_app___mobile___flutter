@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../core/contracts/splash_contract.dart';
-import '../../../core/services/app_initialization_service.dart';
-import '../../../core/services/splash_timer.dart';
-import '../../../core/services/splash_navigation_service.dart';
+import '../../domain/repositories/splash_repository.dart';
 
 /// Splash screen controller following SOLID principles
 /// Single Responsibility: Manages splash screen logic
