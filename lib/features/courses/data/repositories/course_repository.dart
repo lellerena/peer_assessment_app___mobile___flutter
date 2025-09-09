@@ -1,50 +1,45 @@
-import '../contracts/course_repository.dart';
-import '../entities/course.dart';
 
-class InMemoryCourseRepository implements CourseRepository {
-  // Lista con todos los cursos creados
+import 'dart:async';
+import '../../domain/models/course.dart';
+import '../../domain/repositories/i_course_repository.dart';
+
+class CourseRepository implements ICourseRepository {
   final List<Course> _courses = [];
-
-  // Relación curso ↔ usuarios inscritos (ids)
-  // clave: courseId  →  valor: conjunto de userIds
   final Map<String, Set<String>> _enrollments = {};
 
-  // Genera ids únicos simples (suficiente para demo)
   String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
 
   @override
-  Course createCourse({
-    required String name,
-    required String description,
-    required String createdByUserId,
-  }) {
+  Future<List<Course>> getCourses() async => List.unmodifiable(_courses);
+
+   @override
+  Future<List<Course>> getAll() => getCourses();
+
+  @override
+  Future<bool> addCourse(Course c) async {
     final course = Course(
-      id: _newId(),                // ← el repo genera el id
-      name: name,
-      description: description,
-      createdByUserId: createdByUserId,
+      id: c.id.isEmpty ? _newId() : c.id,
+      name: c.name,
+      description: c.description,
+      createdByUserId: c.createdByUserId,
+      enrolledUserIds: const [],
     );
     _courses.add(course);
-    _enrollments.putIfAbsent(course.id, () => <String>{});
-    return course;
+    _enrollments[course.id] = <String>{};
+    return true;
   }
 
   @override
-  List<Course> listCourses() {
-    // Devolvemos una copia inmodificable para proteger el estado interno
-    return List.unmodifiable(_courses);
+  Future<bool> enrollUser(String courseId, String userId) async {
+    final set = _enrollments[courseId];
+    if (set == null) return false;
+    set.add(userId);
+    return true;
   }
 
   @override
-  void enrollUser({required String courseId, required String userId}) {
-    // Si aún no existe el courseId en el mapa, lo crea con un set vacío
-    final set = _enrollments.putIfAbsent(courseId, () => <String>{});
-    set.add(userId); // Set evita duplicados automáticamente
-  }
-
-  @override
-  List<String> listEnrolledUserIds(String courseId) {
-    // Devuelve lista inmodificable (o lista vacía si no hay inscripciones)
-    return List.unmodifiable(_enrollments[courseId] ?? <String>{});
+  Future<List<String>> getEnrolledUserIds(String courseId) async {
+    final set = _enrollments[courseId];
+    return set == null ? const [] : List.unmodifiable(set);
   }
 }
