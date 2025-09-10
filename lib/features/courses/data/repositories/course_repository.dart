@@ -1,45 +1,26 @@
-
-import 'dart:async';
 import '../../domain/models/course.dart';
 import '../../domain/repositories/i_course_repository.dart';
+import '../datasources/course_local_data_source.dart';
 
 class CourseRepository implements ICourseRepository {
-  final List<Course> _courses = [];
-  final Map<String, Set<String>> _enrollments = {};
+  final ICourseLocalDataSource localDataSource;
 
-  String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
-
-  @override
-  Future<List<Course>> getCourses() async => List.unmodifiable(_courses);
-
-   @override
-  Future<List<Course>> getAll() => getCourses();
+  CourseRepository(this.localDataSource);
 
   @override
-  Future<bool> addCourse(Course c) async {
-    final course = Course(
-      id: c.id.isEmpty ? _newId() : c.id,
-      name: c.name,
-      description: c.description,
-      createdByUserId: c.createdByUserId,
-      enrolledUserIds: const [],
-    );
-    _courses.add(course);
-    _enrollments[course.id] = <String>{};
-    return true;
-  }
+  Future<List<Course>> getAll() => localDataSource.getAll();
 
   @override
-  Future<bool> enrollUser(String courseId, String userId) async {
-    final set = _enrollments[courseId];
-    if (set == null) return false;
-    set.add(userId);
-    return true;
-  }
+  Future<List<Course>> getCourses() => localDataSource.getCourses();
 
   @override
-  Future<List<String>> getEnrolledUserIds(String courseId) async {
-    final set = _enrollments[courseId];
-    return set == null ? const [] : List.unmodifiable(set);
-  }
+  Future<bool> addCourse(Course c) => localDataSource.addCourse(c);
+
+  @override
+  Future<bool> enrollUser(String courseId, String userId) =>
+      localDataSource.enrollUser(courseId, userId);
+
+  @override
+  Future<List<String>> getEnrolledUserIds(String courseId) =>
+      localDataSource.getEnrolledUserIds(courseId);
 }

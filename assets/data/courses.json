@@ -1,0 +1,26 @@
+[
+    {
+        "id": "c1",
+        "name": "Flutter Avanzado",
+        "description": "Aprende a construir aplicaciones complejas con Flutter.",
+        "categoryIds": ["cat1"],
+        "teacherId": "u1",
+        "studentIds": ["u2"]
+    },
+    {
+        "id": "c2",
+        "name": "Dart para Principiantes",
+        "description": "Conceptos básicos y fundamentos del lenguaje Dart.",
+        "categoryIds": ["cat1"],
+        "teacherId": "u1",
+        "studentIds": []
+    },
+    {
+        "id": "c3",
+        "name": "Gestión de Estado con GetX",
+        "description": "Domina la gestión de estado en Flutter con GetX.",
+        "categoryIds": ["cat2"],
+        "teacherId": "u1",
+        "studentIds": ["u2"]
+    }
+]
