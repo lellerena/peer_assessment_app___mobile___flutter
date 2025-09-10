@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controller/auth_controller.dart';
-import '../../../user_courses/ui/pages/user_courses_screen.dart';
+import '../../../courses/ui/pages/courses_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   passCtrl.text,
                 );
                 if (success) {
-                  Get.offAll(() => const UserCoursesPage());
+                  Get.offAll(() => const CoursesPage());
                 } else {
                   Get.snackbar(
                     'Error',
