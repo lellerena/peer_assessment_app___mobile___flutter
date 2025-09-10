@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/router/app_routes.dart';
 
 import '../controller/auth_controller.dart';
 import '../../../courses/ui/pages/courses_page.dart';
