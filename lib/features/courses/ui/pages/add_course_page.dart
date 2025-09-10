@@ -28,7 +28,9 @@ class _AddCoursePageState extends State<AddCoursePage> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
-                await c.addCourse(nameCtrl.text.trim(), descCtrl.text.trim(), 'admin'); // TODO: user real
+                // Usamos un categoryId de ejemplo. Idealmente, aquí habría un selector.
+                await c.addCourse(
+                    nameCtrl.text.trim(), descCtrl.text.trim(), 'cat1');
                 if (mounted) Get.back();
               },
               child: const Text('Guardar'),

@@ -158,6 +158,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
                 name: _name,
                 groupingMethod: _groupingMethod,
                 groupSize: _groupSize.toInt(),
+                courseId: '', // Este será asignado por el controlador
               );
               widget.onSave(newCategory);
               Navigator.of(context).pop();

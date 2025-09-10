@@ -1,58 +1,64 @@
 import 'package:get/get.dart';
+import '../../../auth/ui/controller/auth_controller.dart';
 import '../../domain/models/course.dart';
 import '../../domain/usecases/course_usecase.dart';
 
 class CourseController extends GetxController {
-  CourseController(this._useCase);
-  final CourseUseCase _useCase;
+  final CourseUseCase usecase;
+  final AuthController auth;
+  CourseController(this.usecase, this.auth);
 
-  // Estado
+  final allCourses = <Course>[].obs;
+  final teacherCourses = <Course>[].obs;
   final loading = false.obs;
-  final courses = <Course>[].obs;        // todos
-  final myCourses = <Course>[].obs;      // creados por el usuario
-  final enrolledUserIds = <String>[].obs;
 
-  Future<void> loadAll() async {
+  @override
+  void onInit() {
+    super.onInit();
+    getAllCourses();
+    getTeacherCourses();
+  }
+
+  Future<void> getAllCourses() async {
     loading.value = true;
-    final list = await _useCase.getCourses();
-    courses.assignAll(list);
+    allCourses.value = await usecase.getAll();
     loading.value = false;
   }
 
-  Future<void> loadMyCourses(String userId) async {
-    await loadAll();
-    myCourses.assignAll(courses.where((c) => c.createdByUserId == userId));
+  Future<void> getTeacherCourses() async {
+    final teacherId = auth.currentUser.value?.id;
+    if (teacherId == null) return;
+    loading.value = true;
+    final all = await usecase.getAll();
+    teacherCourses.value = all.where((c) => c.teacherId == teacherId).toList();
+    loading.value = false;
   }
 
-  Future<bool> addCourse(String name, String description, String createdByUserId) async {
-    loading.value = true;
-    final ok = await _useCase.addCourse(
+  Future<void> addCourse(String name, String desc, String categoryId) async {
+    final teacherId = auth.currentUser.value?.id;
+    if (teacherId == null) return;
+    await usecase.addCourse(
       Course(
-        id: '', // el repo genera el id
+        id: '',
         name: name,
-        description: description,
-        createdByUserId: createdByUserId,
-        enrolledUserIds: const [],
+        description: desc,
+        categoryIds: [categoryId],
+        teacherId: teacherId,
       ),
     );
-    if (ok) {
-      await loadAll();
-      await loadMyCourses(createdByUserId);
-    }
-    loading.value = false;
-    return ok;
+    await getTeacherCourses();
   }
+
+  Future<void> enroll(String courseId) async {
+    final userId = auth.currentUser.value?.id;
+    if (userId == null) return;
+    await usecase.enrollUser(courseId, userId);
+    await getAllCourses(); // Recarga para actualizar el estado del botón
+  }
+
+  final enrolledUserIds = <String>[].obs;
 
   Future<void> loadEnrolled(String courseId) async {
-    final ids = await _useCase.getEnrolledUserIds(courseId);
-    enrolledUserIds.assignAll(ids);
-  }
-
-  Future<bool> enroll(String courseId, String userId) async {
-    final ok = await _useCase.enrollUser(courseId, userId);
-    if (ok) {
-      await loadEnrolled(courseId);
-    }
-    return ok;
+    enrolledUserIds.value = await usecase.getEnrolledUserIds(courseId);
   }
 }
