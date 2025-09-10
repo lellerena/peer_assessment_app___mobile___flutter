@@ -27,7 +27,7 @@ class InMemoryAuthRepository implements AuthRepository {
   final List<User> _users = [
     User(
       id: '1',
-      email: 'admin@example.com',
+      email: 'hector@example.com',
       name: 'Admin',
       password: '123456', // solo para demo
     ),
