@@ -1,5 +1,13 @@
 [
     {
+        "id": "curso1",
+        "name": "Curso 1",
+        "description": "Curso de prueba para la segunda entrega.",
+        "categoryIds": ["cat1"],
+        "teacherId": "u1",
+        "studentIds": ["u3", "u4"]
+    },
+    {
         "id": "c1",
         "name": "Flutter Avanzado",
         "description": "Aprende a construir aplicaciones complejas con Flutter.",
