@@ -1,37 +1,29 @@
-import 'dart:async';
 import '../../domain/models/user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
+import '../datasources/auth_local_data_source.dart';
 
 class AuthRepository implements IAuthRepository {
-  // Demo: usuarios en memoria
-  final List<User> _users = const [
-    User(id: 'u1', name: 'Jhon', email: 'admin@example.com'),
-    User(id: 'u2', name: 'Ana',  email: 'ana@example.com'),
-  ];
+  final IAuthLocalDataSource localDataSource;
 
-  User? _current;
+  AuthRepository(this.localDataSource);
 
   @override
   Future<User?> signIn(String email, String password) async {
-    // DEMO: contraseña ignorada (no hagas esto en producción)
-    final u = _users.firstWhere(
-      (x) => x.email.toLowerCase() == email.toLowerCase(),
-      orElse: () => const User(id: '', name: '', email: ''),
-    );
-    _current = u.id.isEmpty ? null : u;
-    return _current;
+    return localDataSource.signIn(email, password);
   }
 
   @override
   Future<void> signOut() async {
-    _current = null;
+    return localDataSource.signOut();
   }
 
   @override
-  Future<User?> currentUser() async => _current;
+  Future<User?> currentUser() async {
+    return localDataSource.currentUser();
+  }
 
   @override
   Future<List<User>> getUsersByIds(List<String> ids) async {
-    return _users.where((u) => ids.contains(u.id)).toList();
+    return localDataSource.getUsersByIds(ids);
   }
 }
