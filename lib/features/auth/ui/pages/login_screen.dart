@@ -7,13 +7,31 @@ import '../../../courses/ui/pages/courses_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailCtrl = TextEditingController(text: 'admin@example.com');
-  final passCtrl = TextEditingController(text: '123456');
+  final emailCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = Get.find<AuthController>();
+
+    // Precargar credenciales guardadas
+    auth.loadSavedCredentials().then((credentials) {
+      if (credentials != null) {
+        setState(() {
+          emailCtrl.text = credentials['email']!;
+          passCtrl.text = credentials['password']!;
+          auth.rememberMe = true;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +49,18 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             TextField(
               controller: passCtrl,
+              obscureText: true,
               decoration: const InputDecoration(labelText: 'Contraseña'),
+            ),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              title: const Text('Recordar sesión'),
+              value: auth.rememberMe,
+              onChanged: (value) {
+                setState(() {
+                  auth.rememberMe = value ?? false;
+                });
+              },
             ),
             const SizedBox(height: 24),
             ElevatedButton(
