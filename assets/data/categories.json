@@ -1,0 +1,23 @@
+[
+  {
+    "_id": "cat1",
+    "name": "Desarrollo Frontend",
+    "groupingMethod": "random",
+    "groupSize": 3,
+    "courseId": "c1"
+  },
+  {
+    "_id": "cat2",
+    "name": "Bases de Datos",
+    "groupingMethod": "manual",
+    "groupSize": 4,
+    "courseId": "c1"
+  },
+  {
+    "_id": "cat3",
+    "name": "Algoritmos",
+    "groupingMethod": "selfAssigned",
+    "groupSize": 2,
+    "courseId": "c2"
+  }
+]
