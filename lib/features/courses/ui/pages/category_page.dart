@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/category.dart';
-import '../controller/category_controller.dart';
+import '../controllers/category_controller.dart';
 import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
 

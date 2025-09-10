@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import 'package:loggy/loggy.dart';
 
 import '../../domain/models/category.dart';
-import '../../domain/use_case/category_usecase.dart';
+import '../../domain/usecases/category_usecase.dart';
 
 class CategoryController extends GetxController {
   final RxList<Category> _categories = <Category>[].obs;

@@ -1,5 +1,5 @@
-import '../../domain/models/category.dart';
-import '../../domain/repositories/i_category_repository.dart';
+import '../models/category.dart';
+import '../repositories/i_category_repository.dart';
 
 class CategoryUseCase {
   final ICategoryRepository _repository;
