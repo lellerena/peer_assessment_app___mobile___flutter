@@ -1,16 +1,17 @@
 import 'package:get/get.dart';
-import 'package:loggy/loggy.dart';
-
-import '../../domain/models/category.dart';
+import '../../domain/models/category.dart' as CategoryModel;
 import '../../domain/usecases/category_usecase.dart';
 
 class CategoryController extends GetxController {
-  final RxList<Category> _categories = <Category>[].obs;
+  final RxList<CategoryModel.Category> _categories = <CategoryModel.Category>[].obs;
   final CategoryUseCase categoryUseCase;
+  final String courseId;
+  final RxBool isLoading = false.obs;
+  final RxString errorMessage = ''.obs;
 
-  CategoryController(this.categoryUseCase);
+  CategoryController(this.categoryUseCase, this.courseId);
 
-  List<Category> get categories => _categories;
+  List<CategoryModel.Category> get categories => _categories;
 
   @override
   void onInit() {
@@ -18,26 +19,72 @@ class CategoryController extends GetxController {
     getCategories();
   }
 
+  @override
+  void onClose() {
+    super.onClose();
+  }
+
   getCategories() async {
-    logInfo("Getting categories");
-    _categories.value = await categoryUseCase.getCategories();
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+      print("Getting categories for course: $courseId");
+      _categories.value = await categoryUseCase.getCategories(courseId);
+    } catch (e) {
+      print("Error getting categories: $e");
+      errorMessage.value = "Error loading categories: $e";
+      _categories.value = [];
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  addCategory(Category category) async {
-    logInfo("Adding category");
-    await categoryUseCase.addCategory(category);
-    getCategories();
+  addCategory(CategoryModel.Category category) async {
+    try {
+      isLoading.value = true;
+      
+      // Create category with the current courseId
+      final categoryWithCourseId = CategoryModel.Category(
+        id: category.id,
+        name: category.name,
+        groupingMethod: category.groupingMethod,
+        groupSize: category.groupSize,
+        courseId: courseId,
+      );
+      
+      await categoryUseCase.addCategory(categoryWithCourseId);
+      await getCategories(); // Refresh the list
+    } catch (e) {
+      print("Error adding category: $e");
+      errorMessage.value = "Error adding category: $e";
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  updateCategory(Category category) async {
-    logInfo("Updating category");
-    await categoryUseCase.updateCategory(category);
-    getCategories();
+  updateCategory(CategoryModel.Category category) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.updateCategory(category);
+      await getCategories(); // Refresh the list
+    } catch (e) {
+      print("Error updating category: $e");
+      errorMessage.value = "Error updating category: $e";
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  deleteCategory(Category category) async {
-    logInfo("Deleting category");
-    await categoryUseCase.deleteCategory(category);
-    getCategories();
+  deleteCategory(CategoryModel.Category category) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.deleteCategory(category);
+      await getCategories(); // Refresh the list
+    } catch (e) {
+      print("Error deleting category: $e");
+      errorMessage.value = "Error deleting category: $e";
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

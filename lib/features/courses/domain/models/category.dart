@@ -6,12 +6,14 @@ class Category {
     required this.name,
     required this.groupingMethod,
     required this.groupSize,
+    required this.courseId,
   });
 
   final String id;
   final String name;
   final GroupingMethod groupingMethod;
   final int groupSize;
+  final String courseId;
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
     id: json["_id"],
@@ -21,6 +23,7 @@ class Category {
       orElse: () => GroupingMethod.random,
     ),
     groupSize: json["groupSize"] ?? 0,
+    courseId: json["courseId"] ?? "---",
   );
 
   Map<String, dynamic> toJson() => {
@@ -28,16 +31,18 @@ class Category {
     "name": name,
     "groupingMethod": groupingMethod.name,
     "groupSize": groupSize,
+    "courseId": courseId,
   };
 
   Map<String, dynamic> toJsonNoId() => {
     "name": name,
     "groupingMethod": groupingMethod.name,
     "groupSize": groupSize,
+    "courseId": courseId,
   };
 
   @override
   String toString() {
-    return 'Category{id: $id, name: $name, groupingMethod: $groupingMethod, groupSize: $groupSize}';
+    return 'Category{id: $id, name: $name, groupingMethod: $groupingMethod, groupSize: $groupSize, courseId: $courseId}';
   }
 }

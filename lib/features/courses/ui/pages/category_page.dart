@@ -1,25 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/category.dart';
+import '../../domain/usecases/category_usecase.dart';
 import '../controllers/category_controller.dart';
 import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
 
 class CategoryPage extends StatelessWidget {
-  const CategoryPage({super.key});
+  final String courseId;
+  final String courseName;
+
+  const CategoryPage({super.key, required this.courseId, required this.courseName});
 
   @override
   Widget build(BuildContext context) {
-    final CategoryController controller = Get.find<CategoryController>();
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    
+    // Tag único para este curso
+    final String controllerTag = 'category_controller_$courseId';
+    
+    // Obtener o crear el controlador específico para este curso
+    CategoryController controller;
+    
+    if (Get.isRegistered<CategoryController>(tag: controllerTag)) {
+      controller = Get.find<CategoryController>(tag: controllerTag);
+    } else {
+      controller = Get.put(
+        CategoryController(Get.find<CategoryUseCase>(), courseId), 
+        tag: controllerTag
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categories'),
+        title: Text('Categorías - $courseName'),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Limpiar el controlador al salir
+            if (Get.isRegistered<CategoryController>(tag: controllerTag)) {
+              Get.delete<CategoryController>(tag: controllerTag);
+            }
+            Get.back();
+          },
+        ),
       ),
       body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (controller.errorMessage.value.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 80,
+                  color: colorScheme.error,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Error',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  controller.errorMessage.value,
+                  style: TextStyle(color: colorScheme.error),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => controller.getCategories(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
         if (controller.categories.isEmpty) {
           return Center(
             child: Column(
@@ -37,8 +104,9 @@ class CategoryPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Add a new category using the button below.',
+                  'Add a new category for this course using the button below.',
                   style: TextStyle(color: colorScheme.secondary),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

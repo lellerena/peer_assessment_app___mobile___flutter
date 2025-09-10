@@ -1,25 +1,31 @@
 import '../../domain/repositories/i_category_repository.dart';
-import '../datasources/i_remote_category_source.dart';
+import '../datasources/category_local_data_source.dart';
 import '../../domain/models/category.dart';
 
 class CategoryRepository implements ICategoryRepository {
-  late IRemoteCategorySource categorySource;
+  final ICategoryLocalDataSource localDataSource;
 
-  CategoryRepository(this.categorySource);
-
-  @override
-  Future<List<Category>> getCategories() async =>
-      await categorySource.getCategories();
+  CategoryRepository(this.localDataSource);
 
   @override
-  Future<bool> addCategory(Category category) async =>
-      await categorySource.addCategory(category);
+  Future<List<Category>> getCategories(String courseId) async =>
+      await localDataSource.getCategories(courseId);
 
   @override
-  Future<bool> updateCategory(Category category) async =>
-      await categorySource.updateCategory(category);
+  Future<bool> addCategory(Category category) async {
+    await localDataSource.addCategory(category);
+    return true;
+  }
 
   @override
-  Future<bool> deleteCategory(Category category) async =>
-      await categorySource.deleteCategory(category);
+  Future<bool> updateCategory(Category category) async {
+    await localDataSource.updateCategory(category);
+    return true;
+  }
+
+  @override
+  Future<bool> deleteCategory(Category category) async {
+    await localDataSource.deleteCategory(category.id);
+    return true;
+  }
 }
