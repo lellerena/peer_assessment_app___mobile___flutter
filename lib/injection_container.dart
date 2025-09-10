@@ -31,11 +31,11 @@ Future<void> init() async {
   Get.lazyPut<ICategoryRepository>(() => CategoryRepository(Get.find()));
 
   // --- Use cases ---
-  Get.lazyPut(() => AuthUseCase(Get.find<IAuthRepository>()));
+  Get.put(AuthUseCase(Get.find<IAuthRepository>()));
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()));
   Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
 
   // --- Controllers ---
-  Get.lazyPut(() => AuthController(Get.find<AuthUseCase>()));
+  Get.put(AuthController(Get.find<AuthUseCase>()));
   Get.lazyPut(() => CourseController(Get.find<CourseUseCase>(), Get.find<AuthController>()));
 }
