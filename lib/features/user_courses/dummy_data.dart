@@ -1,5 +1,6 @@
 import '../courses/domain/models/course.dart';
-import '../../core/entities/user.dart';
+import 'package:peer_assessment_app___mobile___flutter/features/auth/domain/models/user.dart';
+
 
 final List<User> dummyUsers = [
   User(id: 'u1', name: 'Jhon', email: 'jhon@example.com', password: ''),

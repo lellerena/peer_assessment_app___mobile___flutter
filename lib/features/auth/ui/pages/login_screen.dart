@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/router/app_routes.dart';
 
 import '../controller/auth_controller.dart';
 import '../../../courses/ui/pages/list_course_page.dart';
@@ -46,15 +47,18 @@ class _LoginScreenState extends State<LoginScreen> {
             Obx(() => ElevatedButton(
               onPressed: auth.loading.value ? null : () async {
                 try {
-                  final ok = await auth.signIn(emailCtrl.text.trim(), passCtrl.text);
-                  if (ok) {
-                    Get.offAll(() => const ListCoursePage());
-                  } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Credenciales inválidas')),
-                    );
-                  }
-                } catch (e, st) {
+    final ok = await auth.signIn(emailCtrl.text.trim(), passCtrl.text);
+
+    if (!mounted) return; // evita usar context si el widget ya no está
+
+    if (ok) {
+      Get.offAllNamed(Routes.userCourses);  // 👈 sin paréntesis
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Credenciales inválidas')),
+      );
+    }
+  } catch (e, st) {
                   debugPrint('LOGIN ERROR: $e\n$st');
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

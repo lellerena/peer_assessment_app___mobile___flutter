@@ -12,10 +12,27 @@ class UserCoursesController extends GetxController {
   final loading = false.obs;
   final courses = <Course>[].obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    // Carga inicial
+    load();
+    // Si cambia el usuario logueado, recarga
+    ever(auth.currentUser, (_) => load());
+  }
+
   Future<void> load() async {
-    loading.value = true;
-    final user = auth.currentUser.value;
-    courses.value = user == null ? <Course>[] : await usecase(user.id);
-    loading.value = false;
+    try {
+      loading.value = true;
+      final user = auth.currentUser.value;
+      courses.assignAll(
+        user == null ? const <Course>[] : await usecase(user.id),
+      );
+    } catch (e, st) {
+      Get.log('UserCoursesController.load ERROR: $e\n$st');
+      courses.clear();
+    } finally {
+      loading.value = false;
+    }
   }
 }

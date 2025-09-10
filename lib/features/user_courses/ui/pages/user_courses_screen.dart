@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/user_courses_controller.dart';
-
+import '../../../../core/router/app_routes.dart'; // importa tus Routes
 class UserCoursesPage extends StatefulWidget {
   const UserCoursesPage({super.key});
 
@@ -22,7 +22,14 @@ class _UserCoursesPageState extends State<UserCoursesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: const BackButton(), title: const Text('Mis cursos')),
+      appBar: AppBar(leading: const BackButton(), title: const Text('Cursos Inscritos'), actions: [
+          TextButton.icon(
+            onPressed: () => Get.toNamed(Routes.myCourses),
+            icon: const Icon(Icons.library_books_outlined),
+            label: const Text('Mis cursos'),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.primary),
+          ),
+        ],),
       body: Obx(() {
         if (c.loading.value) return const Center(child: CircularProgressIndicator());
         if (c.courses.isEmpty) return const Center(child: Text('Aún no estás inscrito en ningún curso.'));
