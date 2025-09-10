@@ -48,4 +48,7 @@ class AuthController extends GetxController {
     final creds = await _localStorageService.getCredentials();
     return creds != null;
   }
+
+  Future<List<User>> getUsersByIds(List<String> ids) =>
+      usecase.getUsersByIds(ids);
 }
