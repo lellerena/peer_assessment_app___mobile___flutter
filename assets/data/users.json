@@ -1,35 +1,40 @@
 [
     {
         "id": "u1",
-        "name": "Jhon",
+        "firstName": "Jhon",
+        "lastName": "Jhon",
         "email": "admin@example.com",
         "role": "teacher",
         "password": "123456"
     },
     {
         "id": "u2",
-        "name": "Ana",
+        "firstName": "Ana",
+        "firstName": "Ana",
         "email": "ana@example.com",
         "role": "student",
         "password": "password"
     },
     {
         "id": "u3",
-        "name": "a",
+        "firstName": "a",
+        "lastName": "a",
         "email": "a@a.com",
         "role": "student",
         "password": "123456"
     },
     {
         "id": "u4",
-        "name": "b",
+        "firstName": "b",
+        "lastName": "b",
         "email": "b@a.com",
         "role": "student",
         "password": "123456"
     },
     {
         "id": "u5",
-        "name": "c",
+        "firstName": "c",
+        "lastName": "c",
         "email": "c@a.com",
         "role": "student",
         "password": "123456"
