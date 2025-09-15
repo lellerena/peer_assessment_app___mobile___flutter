@@ -1,4 +1,13 @@
+import 'package:http/http.dart' as http;
+import 'package:loggy/loggy.dart';
+
 import 'package:get/get.dart';
+
+import 'core/app_theme.dart';
+import 'core/i_local_preferences.dart';
+import 'core/refresh_client.dart';
+import 'core/local_preferences_secured.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/data/datasources/auth_local_data_source.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
@@ -14,28 +23,46 @@ import 'features/courses/domain/repositories/i_category_repository.dart';
 import 'features/courses/domain/usecases/course_usecase.dart';
 import 'features/courses/domain/usecases/category_usecase.dart';
 import 'features/courses/ui/controllers/course_controller.dart';
+import 'features/auth/data/datasources/remote/i_authentication_source.dart';
+import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
 
 Future<void> init() async {
+  Loggy.initLoggy(logPrinter: const PrettyPrinter(showColors: true));
+
   // External
   final sharedPreferences = await SharedPreferences.getInstance();
+  Get.put<ILocalPreferences>(LocalPreferencesSecured());
+
   Get.lazyPut<SharedPreferences>(() => sharedPreferences);
 
+  Get.lazyPut<IAuthenticationSource>(
+    () => AuthenticationSourceServiceRoble(),
+    fenix: true,
+  );
+
+  Get.put<http.Client>(
+    RefreshClient(http.Client(), Get.find<IAuthenticationSource>()),
+    tag: 'apiClient',
+    permanent: true,
+  );
+  Get.put<IAuthRepository>(AuthRepository(Get.find()));
+  Get.put(AuthenticationUseCase(Get.find()));
+  Get.put(AuthenticationController(Get.find()));
+
   // --- Data sources ---
-  Get.lazyPut<IAuthLocalDataSource>(() => AuthLocalDataSource(Get.find()));
   Get.lazyPut<ICourseLocalDataSource>(() => CourseLocalDataSource(Get.find()));
-  Get.lazyPut<ICategoryLocalDataSource>(() => CategoryLocalDataSource(Get.find()));
+  Get.lazyPut<ICategoryLocalDataSource>(
+    () => CategoryLocalDataSource(Get.find()),
+  );
 
   // --- Repositories ---
-  Get.lazyPut<IAuthRepository>(() => AuthRepository(Get.find()));
   Get.lazyPut<ICourseRepository>(() => CourseRepository(Get.find()));
   Get.lazyPut<ICategoryRepository>(() => CategoryRepository(Get.find()));
 
   // --- Use cases ---
-  Get.put(AuthUseCase(Get.find<IAuthRepository>()));
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()));
   Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
 
   // --- Controllers ---
-  Get.put(AuthController(Get.find<AuthUseCase>()));
-  Get.lazyPut(() => CourseController(Get.find<CourseUseCase>(), Get.find<AuthController>()));
+  Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()));
 }

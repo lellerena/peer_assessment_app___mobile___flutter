@@ -33,7 +33,7 @@ class AuthLocalDataSource implements IAuthLocalDataSource {
             user.email.toLowerCase() == email.toLowerCase() &&
             user.password == password,
       );
-      await _prefs.setString('currentUserId', user.id);
+      await _prefs.setString('currentUserId', user.id ?? '');
       return user;
     } catch (e) {
       return null;

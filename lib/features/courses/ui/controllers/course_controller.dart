@@ -1,16 +1,18 @@
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/ui/controller/auth_controller.dart';
 import '../../domain/models/course.dart';
 import '../../domain/usecases/course_usecase.dart';
+import '../../../../../core/i_local_preferences.dart';
 
 class CourseController extends GetxController {
   final CourseUseCase usecase;
-  final AuthController auth;
-  CourseController(this.usecase, this.auth);
+  CourseController(this.usecase);
 
   final allCourses = <Course>[].obs;
   final teacherCourses = <Course>[].obs;
   final loading = false.obs;
+  final ILocalPreferences sharedPreferences = Get.find();
 
   @override
   void onInit() {
@@ -26,7 +28,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> getTeacherCourses() async {
-    final teacherId = auth.currentUser.value?.id;
+    final teacherId = await sharedPreferences.retrieveData('userId');
     if (teacherId == null) return;
     loading.value = true;
     final all = await usecase.getAll();
@@ -35,7 +37,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> addCourse(String name, String desc, String categoryId) async {
-    final teacherId = auth.currentUser.value?.id;
+    final teacherId = await sharedPreferences.retrieveData('userId');
     if (teacherId == null) return;
     await usecase.addCourse(
       Course(
@@ -50,7 +52,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> enroll(String courseId) async {
-    final userId = auth.currentUser.value?.id;
+    final userId = await sharedPreferences.retrieveData('userId');
     if (userId == null) return;
     await usecase.enrollUser(courseId, userId);
     await getAllCourses(); // Recarga para actualizar el estado del botón

@@ -1,29 +1,32 @@
 import '../../domain/models/user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
-import '../datasources/auth_local_data_source.dart';
+import '../datasources/remote/i_authentication_source.dart';
 
 class AuthRepository implements IAuthRepository {
-  final IAuthLocalDataSource localDataSource;
+  late IAuthenticationSource authenticationSource;
 
-  AuthRepository(this.localDataSource);
-
-  @override
-  Future<User?> signIn(String email, String password) async {
-    return localDataSource.signIn(email, password);
-  }
+  AuthRepository(this.authenticationSource);
 
   @override
-  Future<void> signOut() async {
-    return localDataSource.signOut();
-  }
+  Future<bool> login(String email, String password) async =>
+      await authenticationSource.login(email, password);
 
   @override
-  Future<User?> currentUser() async {
-    return localDataSource.currentUser();
-  }
+  Future<bool> signUp(User user) async =>
+      await authenticationSource.signUp(user);
 
   @override
-  Future<List<User>> getUsersByIds(List<String> ids) async {
-    return localDataSource.getUsersByIds(ids);
-  }
+  Future<bool> logOut() async => await authenticationSource.logOut();
+
+  @override
+  Future<bool> validate(String email, String validationCode) async =>
+      await authenticationSource.validate(email, validationCode);
+
+  @override
+  Future<bool> validateToken() async =>
+      await authenticationSource.verifyToken();
+
+  @override
+  Future<void> forgotPassword(String email) async =>
+      await authenticationSource.forgotPassword(email);
 }
