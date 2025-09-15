@@ -12,7 +12,7 @@ import 'i_authentication_source.dart';
 class AuthenticationSourceServiceRoble implements IAuthenticationSource {
   final http.Client httpClient;
   final String baseUrl =
-      'https://roble-api.openlab.uninorte.edu.co/auth/contract_flutterdemo_ebabe79ab0';
+      'https://roble-api.openlab.uninorte.edu.co/auth/scheduler_51d857e7d5';
 
   AuthenticationSourceServiceRoble({http.Client? client})
     : httpClient = client ?? http.Client();
