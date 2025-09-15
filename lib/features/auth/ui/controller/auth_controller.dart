@@ -1,54 +1,57 @@
 import 'package:get/get.dart';
-import '../../domain/models/user.dart';
+
+import 'package:loggy/loggy.dart';
+
 import '../../domain/usecase/auth_usecase.dart';
-import '../../../../core/services/local_storage_service.dart';
 
-class AuthController extends GetxController {
-  final AuthUseCase usecase;
-  final LocalStorageService _localStorageService = LocalStorageService();
+class AuthenticationController extends GetxController {
+  final AuthenticationUseCase authentication;
+  final logged = false.obs;
 
-  AuthController(this.usecase);
+  AuthenticationController(this.authentication);
 
-  final Rxn<User> currentUser = Rxn<User>();
-  final loading = false.obs;
-  bool rememberMe = false; // Flag para recordar sesión
-
-  Future<bool> signIn(String email, String pass) async {
-    loading.value = true;
-    final u = await usecase.signIn(email, pass);
-    currentUser.value = u;
-    loading.value = false;
-
-    if (u != null) {
-      if (rememberMe) {
-        await _localStorageService.saveCredentials(email, pass);
-      } else {
-        await _localStorageService.clearCredentials();
-      }
-      return true;
-    }
-    return false;
+  @override
+  Future<void> onInit() async {
+    super.onInit();
+    logInfo('AuthenticationController initialized');
+    logged.value = await validateToken();
   }
 
-  Future<void> signOut() async {
-    await usecase.signOut();
-    currentUser.value = null;
-    await _localStorageService.clearCredentials();
+  bool get isLogged => logged.value;
+
+  Future<bool> login(email, password) async {
+    logInfo('AuthenticationController: Login $email $password');
+    var rta = await authentication.login(email, password);
+    logged.value = rta;
+    return rta;
   }
 
-  Future<Map<String, String>?> loadSavedCredentials() async {
-    return await _localStorageService.getCredentials();
+  Future<bool> signUp(email, password) async {
+    logInfo('AuthenticationController: Sign Up $email $password');
+    await authentication.signUp(email, password);
+    return true;
   }
 
-  Future<void> setRememberMe(bool value) async {
-    rememberMe = value;
+  Future<bool> validate(String email, String validationCode) async {
+    logInfo('Controller Validate $email $validationCode');
+    var rta = await authentication.validate(email, validationCode);
+    return rta;
   }
 
-  Future<bool> hasSavedCredentials() async {
-    final creds = await _localStorageService.getCredentials();
-    return creds != null;
+  Future<void> logOut() async {
+    logInfo('AuthenticationController: Log Out');
+    await authentication.logOut();
+    logged.value = false;
   }
 
-  Future<List<User>> getUsersByIds(List<String> ids) =>
-      usecase.getUsersByIds(ids);
+  Future<bool> validateToken() async {
+    logInfo('validateToken: validateToken');
+    var rta = await authentication.validateToken();
+    return rta;
+  }
+
+  Future<void> forgotPassword(String email) async {
+    logInfo('AuthenticationController: Forgot Password $email');
+    await authentication.forgotPassword(email);
+  }
 }

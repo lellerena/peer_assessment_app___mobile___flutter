@@ -11,12 +11,10 @@ class EnrolledStudentsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthController authController = Get.find<AuthController>();
-
     return Scaffold(
       appBar: AppBar(title: Text('Estudiantes en ${course.name}')),
       body: FutureBuilder<List<User>>(
-        future: authController.getUsersByIds(course.studentIds),
+        future: null,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

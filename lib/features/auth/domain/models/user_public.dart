@@ -1,23 +1,21 @@
 import 'user_role.dart';
-import 'user_public.dart';
+import 'user.dart';
 
-class User {
+class UserPublic {
   String? id;
   final String name;
   final String email;
   final UserRole role;
-  final String password;
 
-  User({
+  UserPublic({
     this.id,
     required this.name,
     required this.email,
     required this.role,
-    required this.password,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+  factory UserPublic.fromJson(Map<String, dynamic> json) {
+    return UserPublic(
       id: json['id'],
       name: json['name'],
       email: json['email'],
@@ -25,7 +23,6 @@ class User {
         (e) => e.toString() == 'UserRole.${json['role']}',
         orElse: () => UserRole.student,
       ),
-      password: json['password'],
     );
   }
 
@@ -35,27 +32,16 @@ class User {
       'name': name,
       'email': email,
       'role': role.toString().split('.').last,
-      'password': password,
     };
   }
 
-  // Conversión a UserPublic
-  UserPublic toPublic() {
-    return UserPublic(
+  // Conversión a User (requiere password)
+  User toUser(String password) {
+    return User(
       id: id,
       name: name,
       email: email,
       role: role,
-    );
-  }
-
-  // Crear User desde UserPublic y password
-  factory User.fromPublic(UserPublic public, String password) {
-    return User(
-      id: public.id,
-      name: public.name,
-      email: public.email,
-      role: public.role,
       password: password,
     );
   }
