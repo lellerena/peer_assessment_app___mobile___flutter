@@ -39,7 +39,12 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
       sharedPreferences.storeData('token', token);
       sharedPreferences.storeData('refreshToken', refreshToken);
       sharedPreferences.storeData('user', jsonEncode(user.toJson()));
-      sharedPreferences.storeData('userId', userId);
+      if (userId != null) {
+        sharedPreferences.storeData('userId', userId);
+      } else {
+        // Evita TypeError al intentar guardar null en storage
+        await sharedPreferences.removeData('userId');
+      }
       logInfo(
         "Token: $token"
             "\nRefresh Token: $refreshToken",
@@ -88,32 +93,26 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
   @override
   Future<bool> logOut() async {
     final ILocalPreferences sharedPreferences = Get.find();
-    final token = await sharedPreferences.retrieveData<String>('token');
-    if (token == null) {
-      logError("No token found, cannot log out.");
-      return Future.error('No token found');
+    try {
+      final token = await sharedPreferences.retrieveData<String>('token');
+      if (token != null) {
+        await httpClient
+            .post(
+              Uri.parse("$baseUrl/logout"),
+              headers: <String, String>{'Authorization': 'Bearer $token'},
+            )
+            .timeout(const Duration(seconds: 2));
+      }
+    } catch (e) {
+      logError('Logout request failed or timed out: $e');
+    } finally {
+      await sharedPreferences.removeData('token');
+      await sharedPreferences.removeData('refreshToken');
+      await sharedPreferences.removeData('user');
+      await sharedPreferences.removeData('userId');
     }
-
-    final response = await httpClient.post(
-      Uri.parse("$baseUrl/logout"),
-      headers: <String, String>{'Authorization': 'Bearer $token'},
-    );
-
-    logInfo(response.statusCode);
-    if (response.statusCode == 201) {
-      final ILocalPreferences sharedPreferences = Get.find();
-      sharedPreferences.removeData('token');
-      sharedPreferences.removeData('refreshToken');
-      logInfo("Logged out successfully");
-      return Future.value(true);
-    } else {
-      final Map<String, dynamic> errorBody = json.decode(response.body);
-      final String errorMessage = errorBody['message'];
-      logError(
-        "logout endpoint got error code ${response.statusCode} $errorMessage for token: $token",
-      );
-      return Future.error('Error code $errorMessage');
-    }
+    logInfo("Logged out locally");
+    return Future.value(true);
   }
 
   @override

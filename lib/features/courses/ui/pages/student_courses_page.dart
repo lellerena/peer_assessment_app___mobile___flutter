@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/course_controller.dart';
 import '../../../../../core/i_local_preferences.dart';
+import '../../../auth/ui/controller/auth_controller.dart';
+import '../../../../../core/router/app_routes.dart';
+import 'course_detail_page.dart';
 
 class StudentCoursesPage extends StatelessWidget {
   const StudentCoursesPage({super.key});
@@ -24,7 +27,19 @@ class StudentCoursesPage extends StatelessWidget {
         c.getAllCourses(); // Carga todos los cursos
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Cursos Disponibles (Estudiante)')),
+          appBar: AppBar(
+            title: const Text('Cursos Disponibles (Estudiante)'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  final AuthenticationController auth = Get.find();
+                  await auth.logOut();
+                  Get.offAllNamed(Routes.login);
+                },
+              ),
+            ],
+          ),
           body: Obx(() {
             if (c.loading.value) {
               return const Center(child: CircularProgressIndicator());
@@ -46,6 +61,7 @@ class StudentCoursesPage extends StatelessWidget {
                     onPressed: isEnrolled ? null : () => c.enroll(course.id),
                     child: Text(isEnrolled ? 'Inscrito' : 'Inscribirse'),
                   ),
+                  onTap: () => Get.to(() => CourseDetailPage(courseId: course.id)),
                 );
               },
             );

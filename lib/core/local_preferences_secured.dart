@@ -35,6 +35,10 @@ class LocalPreferencesSecured implements ILocalPreferences {
 
   @override
   Future<void> storeData(String key, dynamic value) async {
+    if (value == null) {
+      await _storage.delete(key: key);
+      return;
+    }
     if (value is bool) {
       await _storage.write(key: key, value: value.toString());
     } else if (value is double) {

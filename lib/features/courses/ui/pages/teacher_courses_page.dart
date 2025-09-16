@@ -4,6 +4,9 @@ import '../controllers/course_controller.dart';
 import 'add_course_page.dart';
 import 'enrolled_students_page.dart';
 import 'category_page.dart';
+import 'course_detail_page.dart';
+import '../../../auth/ui/controller/auth_controller.dart';
+import '../../../../../core/router/app_routes.dart';
 
 class TeacherCoursesPage extends StatelessWidget {
   const TeacherCoursesPage({super.key});
@@ -14,7 +17,19 @@ class TeacherCoursesPage extends StatelessWidget {
     c.getTeacherCourses(); // Carga los cursos del profesor
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Cursos (Profesor)')),
+      appBar: AppBar(
+        title: const Text('Mis Cursos (Profesor)'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              final AuthenticationController auth = Get.find();
+              await auth.logOut();
+              Get.offAllNamed(Routes.login);
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.to(() => const AddCoursePage()),
         child: const Icon(Icons.add),
@@ -53,7 +68,7 @@ class TeacherCoursesPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                onTap: () => Get.to(() => EnrolledStudentsPage(course: course)),
+                onTap: () => Get.to(() => CourseDetailPage(courseId: course.id)),
               ),
             );
           },
