@@ -36,4 +36,14 @@ class Course {
       'studentIds': studentIds,
     };
   }
+
+  Map<String, dynamic> toJsonNoId() {
+    return {
+      'name': name,
+      'description': description,
+      'categoryIds': categoryIds,
+      'teacherId': teacherId,
+      'studentIds': studentIds,
+    };
+  }
 }
