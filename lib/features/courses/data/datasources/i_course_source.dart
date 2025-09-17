@@ -7,6 +7,8 @@ abstract class ICourseSource {
 
   Future<bool> addCourse(Course c);
 
+  Future<bool> updateCourse(Course course);
+
   Future<bool> enrollUser(String courseId, String userId);
 
   Future<List<String>> getEnrolledUserIds(String courseId);

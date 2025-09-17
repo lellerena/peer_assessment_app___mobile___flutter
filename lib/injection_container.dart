@@ -15,8 +15,6 @@ import 'features/auth/domain/repositories/i_auth_repository.dart';
 import 'features/auth/domain/usecase/auth_usecase.dart';
 import 'features/auth/ui/controller/auth_controller.dart';
 
-import 'features/courses/data/datasources/course_local_data_source.dart';
-import 'features/courses/data/datasources/category_local_data_source.dart';
 import 'features/courses/data/repositories/course_repository.dart';
 import 'features/courses/data/repositories/category_repository.dart';
 import 'features/courses/domain/repositories/i_course_repository.dart';
@@ -26,7 +24,7 @@ import 'features/courses/domain/usecases/category_usecase.dart';
 import 'features/courses/ui/controllers/course_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
-import 'features/courses/data/datasources/remote/remote_course_roble_source.dart';
+import 'features/courses/data/datasources/datasources.dart';
 
 Future<void> init() async {
   Loggy.initLoggy(logPrinter: const PrettyPrinter(showColors: true));
@@ -52,7 +50,7 @@ Future<void> init() async {
   Get.put(AuthenticationController(Get.find()));
 
   // --- Data sources ---
-  Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
+  Get.lazyPut<ICourseSource>(() => LocalCourseSource(), fenix: true);
   Get.lazyPut<ICategoryLocalDataSource>(
     () => CategoryLocalDataSource(Get.find()),
   );

@@ -120,7 +120,7 @@ class RemoteCourseRobleSource implements ICourseSource {
       body: jsonEncode({
         'tableName': table,
         'idColumn': '_id',
-        'idValue': course.id ?? "0",
+        'idValue': course.id,
         'updates': course.toJsonNoId(),
       }),
     );
