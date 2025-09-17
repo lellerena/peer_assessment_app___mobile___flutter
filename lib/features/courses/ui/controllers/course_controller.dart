@@ -19,6 +19,20 @@ class CourseController extends GetxController {
     getTeacherCourses();
   }
 
+  Future<void> refreshCourses() async {
+    await getAllCourses();
+    await getTeacherCourses();
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+    allCourses.clear();
+    teacherCourses.clear();
+    loading.value = false;
+    enrolledUserIds.clear();
+  }
+
   Future<void> getAllCourses() async {
     loading.value = true;
     allCourses.value = await usecase.getAll();

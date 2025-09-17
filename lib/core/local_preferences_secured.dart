@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:loggy/loggy.dart';
 import 'i_local_preferences.dart';
 
 class LocalPreferencesSecured implements ILocalPreferences {
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.unlocked,
-    ),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
   );
 
   @override
   Future<T?> retrieveData<T>(String key) async {
     final raw = await _storage.read(key: key);
+    logInfo("Retrieved data for key '$key': $raw");
     if (raw == null) return null;
 
     if (T == String) {
@@ -39,6 +37,8 @@ class LocalPreferencesSecured implements ILocalPreferences {
       await _storage.delete(key: key);
       return;
     }
+    logInfo("Storing data for key '$key': $value");
+
     if (value is bool) {
       await _storage.write(key: key, value: value.toString());
     } else if (value is double) {
@@ -55,7 +55,14 @@ class LocalPreferencesSecured implements ILocalPreferences {
   }
 
   @override
-  Future<void> removeData(String key) async => await _storage.delete(key: key);
+  Future<void> removeData(String key) async {
+    logInfo("Removing data for key '$key'");
+    await _storage.delete(key: key);
+  }
+
   @override
-  Future<void> clearAll() async => await _storage.deleteAll();
+  Future<void> clearAll() async {
+    logInfo("Clearing all data in secure storage");
+    await _storage.deleteAll();
+  }
 }

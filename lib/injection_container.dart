@@ -58,13 +58,19 @@ Future<void> init() async {
   );
 
   // --- Repositories ---
-  Get.lazyPut<ICourseRepository>(() => CourseRepository(Get.find()));
-  Get.lazyPut<ICategoryRepository>(() => CategoryRepository(Get.find()));
+  Get.lazyPut<ICourseRepository>(
+    () => CourseRepository(Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut<ICategoryRepository>(
+    () => CategoryRepository(Get.find()),
+    fenix: true,
+  );
 
   // --- Use cases ---
-  Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()));
+  Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()), fenix: true);
   Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
 
   // --- Controllers ---
-  Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()));
+  Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()), fenix: true);
 }
