@@ -36,11 +36,11 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
       final user = UserPublic.fromJson(data['user']);
       final userId = user.id;
       final ILocalPreferences sharedPreferences = Get.find();
-      sharedPreferences.storeData('token', token);
-      sharedPreferences.storeData('refreshToken', refreshToken);
-      sharedPreferences.storeData('user', jsonEncode(user.toJson()));
+      await sharedPreferences.storeData('token', token);
+      await sharedPreferences.storeData('refreshToken', refreshToken);
+      await sharedPreferences.storeData('user', jsonEncode(user.toJson()));
       if (userId != null) {
-        sharedPreferences.storeData('userId', userId);
+        await sharedPreferences.storeData('userId', userId);
       } else {
         // Evita TypeError al intentar guardar null en storage
         await sharedPreferences.removeData('userId');
@@ -162,7 +162,7 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
       final newToken = data['accessToken'];
-      sharedPreferences.storeData('token', newToken);
+      await sharedPreferences.storeData('token', newToken);
       logInfo("Token refreshed successfully");
       return Future.value(true);
     } else {

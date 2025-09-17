@@ -26,7 +26,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> getTeacherCourses() async {
-    final teacherId = await sharedPreferences.retrieveData('userId');
+    final teacherId = await sharedPreferences.retrieveData<String>('userId');
     if (teacherId == null) return;
     loading.value = true;
     final all = await usecase.getAll();
@@ -35,7 +35,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> addCourse(String name, String desc, String categoryId) async {
-    final teacherId = await sharedPreferences.retrieveData('userId');
+    final teacherId = await sharedPreferences.retrieveData<String>('userId');
     if (teacherId == null) return;
     await usecase.addCourse(
       Course(
@@ -50,7 +50,7 @@ class CourseController extends GetxController {
   }
 
   Future<void> enroll(String courseId) async {
-    final userId = await sharedPreferences.retrieveData('userId');
+    final userId = await sharedPreferences.retrieveData<String>('userId');
     if (userId == null) return;
     await usecase.enrollUser(courseId, userId);
     await getAllCourses(); // Recarga para actualizar el estado del botón
