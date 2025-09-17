@@ -11,7 +11,7 @@ import '../i_course_source.dart';
 
 class RemoteCourseRobleSource implements ICourseSource {
   // Simulating a database with an in-memory list
-  static final List<Course> _courses = [];
+  // static final List<Course> _courses = [];
   final http.Client httpClient;
 
   final String contract = 'scheduler_51d857e7d5';
@@ -19,7 +19,8 @@ class RemoteCourseRobleSource implements ICourseSource {
   String get contractUrl => '$baseUrl/$contract';
   final String table = 'courses';
 
-  RemoteCourseRobleSource(this.httpClient);
+  RemoteCourseRobleSource({http.Client? client})
+    : httpClient = client ?? http.Client();
 
   @override
   Future<bool> addCourse(Course course) async {
@@ -76,6 +77,7 @@ class RemoteCourseRobleSource implements ICourseSource {
     final ILocalPreferences sharedPreferences = Get.find();
 
     final token = await sharedPreferences.retrieveData<String>('token');
+    logInfo("Using token: $token");
     var response = await httpClient.get(
       uri,
       headers: {'Authorization': 'Bearer $token'},
@@ -85,6 +87,7 @@ class RemoteCourseRobleSource implements ICourseSource {
 
     if (response.statusCode == 200) {
       List<dynamic> decodedJson = jsonDecode(response.body);
+      logInfo("Decoded JSON: $decodedJson");
       courses = List<Course>.from(decodedJson.map((x) => Course.fromJson(x)));
       logInfo("Fetched ${courses.length} courses from remote source");
     } else {
@@ -139,9 +142,41 @@ class RemoteCourseRobleSource implements ICourseSource {
   }
 
   @override
-  Future<bool> enrollUser(String courseId, String userId) {
-    // TODO: implement enrollUser
-    throw UnimplementedError();
+  Future<bool> enrollUser(String courseId, String userId) async {
+    logInfo("Enrolling user $userId in course $courseId");
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    final uri = Uri.https(baseUrl, '/database/$contract/update');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final response = await httpClient.put(
+      uri,
+      headers: headers,
+      body: jsonEncode({
+        'tableName': table,
+        'idColumn': '_id',
+        'idValue': courseId,
+        'updates': {
+          '\$addToSet': {'studentIds': userId},
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return Future.value(true);
+    } else {
+      final Map<String, dynamic> body = json.decode(response.body);
+      final String errorMessage = body['message'];
+      logError(
+        "EnrollUser got error code ${response.statusCode}: $errorMessage",
+      );
+      return Future.error(
+        'EnrollUser error code ${response.statusCode}: $errorMessage',
+      );
+    }
   }
 
   @override
@@ -151,7 +186,63 @@ class RemoteCourseRobleSource implements ICourseSource {
 
   @override
   Future<List<String>> getEnrolledUserIds(String courseId) {
-    // TODO: implement getEnrolledUserIds
-    throw UnimplementedError();
+    logInfo("Getting enrolled user IDs for course $courseId");
+    return getCourses().then((courses) {
+      final course = courses.firstWhere(
+        (course) => course.id == courseId,
+        orElse: () {
+          logError("Course with id $courseId not found");
+          return Course(
+            id: '',
+            name: 'Unknown',
+            description: '',
+            teacherId: '',
+          );
+        },
+      );
+      return course.studentIds;
+    });
+  }
+
+  @override
+  Future<List<Course>> getCoursesByUserId(String userId) async {
+    logInfo("Getting courses for userId $userId from remote Roble source");
+
+    List<Course> courses = [];
+
+    var uri = Uri.https(baseUrl, '/database/$contract/read', {
+      'tableName': table,
+      'filter': jsonEncode({
+        'studentIds': {
+          '\$in': [userId],
+        },
+      }),
+    });
+
+    logInfo("Fetching courses by userId from remote source");
+
+    final ILocalPreferences sharedPreferences = Get.find();
+
+    final token = await sharedPreferences.retrieveData<String>('token');
+    var response = await httpClient.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    logInfo("Response status code: ${response.statusCode}");
+
+    if (response.statusCode == 200) {
+      List<dynamic> decodedJson = jsonDecode(response.body);
+      courses = List<Course>.from(decodedJson.map((x) => Course.fromJson(x)));
+      logInfo(
+        "Fetched ${courses.length} courses for userId from remote source",
+      );
+    } else {
+      logError("Got error code ${response.statusCode}");
+      return Future.error('Error code ${response.statusCode}');
+    }
+
+    // Return a copy to prevent direct modification of the source list
+    return Future.value(List<Course>.from(courses));
   }
 }

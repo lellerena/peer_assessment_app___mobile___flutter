@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:get/get.dart';
-import '../../../auth/domain/models/user.dart';
+
+import '../../../auth/domain/models/user_public.dart';
 import '../../../auth/domain/models/user_role.dart';
 import 'student_courses_page.dart';
 import 'teacher_courses_page.dart';
@@ -38,7 +39,7 @@ class CoursesPage extends StatelessWidget {
           );
         }
         if (raw != null && raw.isNotEmpty) {
-          final user = User.fromJson(jsonDecode(raw));
+          final user = UserPublic.fromJson(jsonDecode(raw));
           if (user.role == UserRole.teacher) {
             return const TeacherCoursesPage();
           } else {
@@ -64,54 +65,56 @@ class _CoursesTabbed extends StatelessWidget {
 
     return DefaultTabController(
       length: 3,
-      child: Builder(builder: (context) {
-        final controller = DefaultTabController.of(context);
-        return AnimatedBuilder(
-          animation: controller,
-          builder: (_, __) => Scaffold(
-            appBar: AppBar(
-              title: const Text('Cursos'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () async {
-                    final AuthenticationController auth = Get.find();
-                    await auth.logOut();
-                    Get.offAllNamed(Routes.login);
-                  },
+      child: Builder(
+        builder: (context) {
+          final controller = DefaultTabController.of(context);
+          return AnimatedBuilder(
+            animation: controller,
+            builder: (_, __) => Scaffold(
+              appBar: AppBar(
+                title: const Text('Cursos'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () async {
+                      final AuthenticationController auth = Get.find();
+                      await auth.logOut();
+                      Get.offAllNamed(Routes.login);
+                    },
+                  ),
+                ],
+                bottom: const TabBar(
+                  tabs: [
+                    Tab(text: 'Disponibles'),
+                    Tab(text: 'Creados'),
+                    Tab(text: 'Inscritos'),
+                  ],
                 ),
-              ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Disponibles'),
-                  Tab(text: 'Creados'),
-                  Tab(text: 'Inscritos'),
-                ],
               ),
+              floatingActionButton: controller.index == 1
+                  ? FloatingActionButton(
+                      onPressed: () => Get.to(() => const AddCoursePage()),
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
+              body: Obx(() {
+                if (c.loading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final all = c.allCourses;
+                final created = c.teacherCourses;
+                return TabBarView(
+                  children: [
+                    _CourseList(items: all),
+                    _CourseList(items: created),
+                    _EnrolledList(),
+                  ],
+                );
+              }),
             ),
-            floatingActionButton: controller.index == 1
-                ? FloatingActionButton(
-                    onPressed: () => Get.to(() => const AddCoursePage()),
-                    child: const Icon(Icons.add),
-                  )
-                : null,
-            body: Obx(() {
-              if (c.loading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final all = c.allCourses;
-              final created = c.teacherCourses;
-              return TabBarView(
-                children: [
-                  _CourseList(items: all),
-                  _CourseList(items: created),
-                  _EnrolledList(),
-                ],
-              );
-            }),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 }
@@ -151,7 +154,9 @@ class _EnrolledList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         final userId = snapshot.data!;
-        final enrolled = c.allCourses.where((e) => e.studentIds.contains(userId)).toList();
+        final enrolled = c.allCourses
+            .where((e) => e.studentIds.contains(userId))
+            .toList();
         if (enrolled.isEmpty) {
           return const Center(child: Text('No hay cursos para mostrar.'));
         }

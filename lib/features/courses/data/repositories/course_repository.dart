@@ -1,10 +1,10 @@
-import '/features/courses/data/datasources/course_local_data_source.dart';
+import '/features/courses/data/datasources/i_course_source.dart';
 
 import '../../domain/models/course.dart';
 import '../../domain/repositories/i_course_repository.dart';
 
 class CourseRepository implements ICourseRepository {
-  final ICourseLocalDataSource localDataSource;
+  final ICourseSource localDataSource;
 
   CourseRepository(this.localDataSource);
 
