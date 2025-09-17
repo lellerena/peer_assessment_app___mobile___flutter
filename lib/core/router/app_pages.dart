@@ -4,7 +4,6 @@ import 'package:peer_assessment_app___mobile___flutter/central.dart';
 import 'package:peer_assessment_app___mobile___flutter/features/courses/ui/pages/courses_page.dart';
 
 import '../../features/splash/ui/pages/splash_page.dart';
-import '../../features/auth/ui/pages/login_screen.dart';
 import '../../features/courses/ui/pages/add_course_page.dart';
 
 import '../../features/auth/ui/controller/auth_controller.dart';
@@ -31,6 +30,12 @@ class AppPages {
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<AuthenticationController>()) {
           Get.put(AuthenticationController(Get.find()), permanent: true);
+        }
+        if (!Get.isRegistered<CourseController>()) {
+          Get.lazyPut<CourseController>(
+            () => CourseController(Get.find<CourseUseCase>()),
+            fenix: true,
+          );
         }
       }),
     ),
