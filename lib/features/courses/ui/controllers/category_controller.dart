@@ -3,7 +3,8 @@ import '../../domain/models/category.dart' as CategoryModel;
 import '../../domain/usecases/category_usecase.dart';
 
 class CategoryController extends GetxController {
-  final RxList<CategoryModel.Category> _categories = <CategoryModel.Category>[].obs;
+  final RxList<CategoryModel.Category> _categories =
+      <CategoryModel.Category>[].obs;
   final CategoryUseCase categoryUseCase;
   final String courseId;
   final RxBool isLoading = false.obs;
@@ -29,7 +30,9 @@ class CategoryController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       print("Getting categories for course: $courseId");
-      _categories.value = await categoryUseCase.getCategories(courseId);
+      _categories.value = await categoryUseCase.getCategoriesByCourseId(
+        courseId,
+      );
     } catch (e) {
       print("Error getting categories: $e");
       errorMessage.value = "Error loading categories: $e";
@@ -42,7 +45,7 @@ class CategoryController extends GetxController {
   addCategory(CategoryModel.Category category) async {
     try {
       isLoading.value = true;
-      
+
       // Create category with the current courseId
       final categoryWithCourseId = CategoryModel.Category(
         id: category.id,
@@ -51,7 +54,7 @@ class CategoryController extends GetxController {
         groupSize: category.groupSize,
         courseId: courseId,
       );
-      
+
       await categoryUseCase.addCategory(categoryWithCourseId);
       await getCategories(); // Refresh the list
     } catch (e) {

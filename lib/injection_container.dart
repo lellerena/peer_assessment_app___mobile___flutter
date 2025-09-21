@@ -2,7 +2,6 @@ import 'package:http/http.dart' as http;
 import 'package:loggy/loggy.dart';
 
 import 'package:get/get.dart';
-import 'package:peer_assessment_app___mobile___flutter/features/courses/data/datasources/i_course_source.dart';
 
 import 'core/app_theme.dart';
 import 'core/i_local_preferences.dart';
@@ -50,10 +49,8 @@ Future<void> init() async {
   Get.put(AuthenticationController(Get.find()));
 
   // --- Data sources ---
-  Get.lazyPut<ICourseSource>(() => LocalCourseSource(), fenix: true);
-  Get.lazyPut<ICategoryLocalDataSource>(
-    () => CategoryLocalDataSource(Get.find()),
-  );
+  Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
+  Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource());
 
   // --- Repositories ---
   Get.lazyPut<ICourseRepository>(

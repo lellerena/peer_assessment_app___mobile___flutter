@@ -6,8 +6,14 @@ class CategoryUseCase {
 
   CategoryUseCase(this._repository);
 
-  Future<List<Category>> getCategories(String courseId) async =>
-      await _repository.getCategories(courseId);
+  Future<List<Category>> getCategories() async =>
+      await _repository.getCategories();
+
+  Future<Category> getCategoryById(String id) async =>
+      await _repository.getCategoryById(id);
+
+  Future<List<Category>> getCategoriesByCourseId(String courseId) async =>
+      await _repository.getCategoriesByCourseId(courseId);
 
   Future<bool> addCategory(Category category) async =>
       await _repository.addCategory(category);
