@@ -193,6 +193,21 @@ class RemoteCourseRobleSource implements ICourseSource {
       'Authorization': 'Bearer $token',
     };
 
+    // Obtener los studentIds actuales
+    List<String> currentStudentIds = [];
+    try {
+      final courses = await getCourses();
+      final course = courses.firstWhere(
+        (c) => c.id == courseId,
+        orElse: () => Course(id: '', name: '', teacherId: ''),
+      );
+      currentStudentIds = List<String>.from(course.studentIds);
+    } catch (e) {
+      logError("Error getting current studentIds for enroll: $e");
+    }
+    if (!currentStudentIds.contains(userId)) {
+      currentStudentIds.add(userId);
+    }
     final response = await httpClient.put(
       uri,
       headers: headers,
@@ -201,7 +216,7 @@ class RemoteCourseRobleSource implements ICourseSource {
         'idColumn': '_id',
         'idValue': courseId,
         'updates': {
-          '\$addToSet': {'studentIds': userId},
+          'studentIds': {'data': currentStudentIds},
         },
       }),
     );
