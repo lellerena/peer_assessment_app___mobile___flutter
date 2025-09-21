@@ -23,14 +23,19 @@ class _AddCoursePageState extends State<AddCoursePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre')),
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descripción')),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Nombre'),
+            ),
+            TextField(
+              controller: descCtrl,
+              decoration: const InputDecoration(labelText: 'Descripción'),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
                 // Usamos un categoryId de ejemplo. Idealmente, aquí habría un selector.
-                await c.addCourse(
-                    nameCtrl.text.trim(), descCtrl.text.trim(), 'cat1');
+                await c.addCourse(nameCtrl.text.trim(), descCtrl.text.trim());
                 if (mounted) Get.back();
               },
               child: const Text('Guardar'),

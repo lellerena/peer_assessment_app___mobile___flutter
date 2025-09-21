@@ -39,12 +39,7 @@ class CoursesPage extends StatelessWidget {
           );
         }
         if (raw != null && raw.isNotEmpty) {
-          final user = UserPublic.fromJson(jsonDecode(raw));
-          if (user.role == UserRole.teacher) {
-            return const TeacherCoursesPage();
-          } else {
-            return const StudentCoursesPage();
-          }
+          return const _CoursesTabbed();
         }
 
         // Fallback: si no hay user serializado, pero sí userId, mostramos tabs neutras

@@ -48,7 +48,7 @@ class CourseController extends GetxController {
     loading.value = false;
   }
 
-  Future<void> addCourse(String name, String desc, String categoryId) async {
+  Future<void> addCourse(String name, String desc) async {
     final teacherId = await sharedPreferences.retrieveData<String>('userId');
     if (teacherId == null) return;
     await usecase.addCourse(
@@ -56,7 +56,7 @@ class CourseController extends GetxController {
         id: '',
         name: name,
         description: desc,
-        categoryIds: [categoryId],
+        categoryIds: [],
         teacherId: teacherId,
       ),
     );

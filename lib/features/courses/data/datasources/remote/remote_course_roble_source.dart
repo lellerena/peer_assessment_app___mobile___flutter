@@ -8,6 +8,7 @@ import '/core/i_local_preferences.dart';
 
 import '../../../domain/models/course.dart';
 import '../i_course_source.dart';
+import '../i_category_source.dart';
 
 class RemoteCourseRobleSource implements ICourseSource {
   // Simulating a database with an in-memory list
@@ -24,7 +25,7 @@ class RemoteCourseRobleSource implements ICourseSource {
 
   @override
   Future<bool> addCourse(Course course) async {
-    logInfo("Adding course to remote Roble source: ${course.name}");
+    logInfo("Adding course to remote Roble source: ${course.toJson()}");
     final uri = Uri.https(baseUrl, '/database/$contract/insert');
 
     final ILocalPreferences sharedPreferences = Get.find();
@@ -35,14 +36,21 @@ class RemoteCourseRobleSource implements ICourseSource {
     };
 
     final body = jsonEncode({
-      'table': table,
-      'records': [course.toJsonNoId()],
+      'tableName': table,
+      'records': [
+        {
+          ...course.toJsonNoId(),
+          'studentIds': {'data': course.studentIds},
+          'categoryIds': {'data': course.categoryIds},
+        },
+      ],
     });
 
     final response = await httpClient.post(uri, headers: headers, body: body);
 
     if (response.statusCode == 201) {
       logInfo("Course added successfully");
+      logInfo("Response body: ${response.body}");
       return Future.value(true);
     } else {
       final Map<String, dynamic> body = json.decode(response.body);
@@ -75,7 +83,6 @@ class RemoteCourseRobleSource implements ICourseSource {
     logInfo("Fetching courses from remote source");
 
     final ILocalPreferences sharedPreferences = Get.find();
-
     final token = await sharedPreferences.retrieveData<String>('token');
     logInfo("Using token: $token");
     var response = await httpClient.get(
@@ -88,8 +95,38 @@ class RemoteCourseRobleSource implements ICourseSource {
     if (response.statusCode == 200) {
       List<dynamic> decodedJson = jsonDecode(response.body);
       logInfo("Decoded JSON: $decodedJson");
-      courses = List<Course>.from(decodedJson.map((x) => Course.fromJson(x)));
+
+      // Obtener los ids de las categorías por cada curso
+      final categorySource = Get.find<ICategorySource>();
+      courses = [];
+      for (var x in decodedJson) {
+        List<String> categoryIds = [];
+        try {
+          final categories = await categorySource.getCategoriesByCourseId(
+            x['_id'],
+          );
+          categoryIds = categories.map((cat) => cat.id).toList();
+        } catch (e) {
+          logError("Error getting categories for course ${x['_id']}: $e");
+        }
+        courses.add(
+          Course(
+            id: x['_id'],
+            name: x['name'],
+            description: x['description'],
+            categoryIds: categoryIds,
+            teacherId: x['teacherId'],
+            studentIds:
+                (x.containsKey('studentIds') &&
+                    x['studentIds'] != null &&
+                    x['studentIds'].containsKey('data'))
+                ? List<String>.from(x['studentIds']['data'])
+                : [],
+          ),
+        );
+      }
       logInfo("Fetched ${courses.length} courses from remote source");
+      logInfo("Courses: ${courses[3].toJson()}");
     } else {
       logError("Got error code ${response.statusCode}");
       return Future.error('Error code ${response.statusCode}');
@@ -121,7 +158,11 @@ class RemoteCourseRobleSource implements ICourseSource {
         'tableName': table,
         'idColumn': '_id',
         'idValue': course.id,
-        'updates': course.toJsonNoId(),
+        'updates': {
+          ...course.toJsonNoId(),
+          'studentIds': {'data': course.studentIds},
+          'categoryIds': {'data': course.categoryIds},
+        },
       }),
     );
 
