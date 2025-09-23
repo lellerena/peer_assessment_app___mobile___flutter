@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import '/core/i_local_preferences.dart';
-import '../../../domain/models/category.dart';
+import '../../../domain/models/index.dart';
 import '../i_category_source.dart';
 
 class RemoteCategoryRobleSource implements ICategorySource {
@@ -111,7 +111,12 @@ class RemoteCategoryRobleSource implements ICategorySource {
     };
     final body = jsonEncode({
       'tableName': table,
-      'records': [category.toJsonNoId()],
+      'records': [
+        {
+          ...category.toJsonNoId(),
+          'groups': {'data': category.groups.map((g) => g.toJson()).toList()},
+        },
+      ],
     });
     final response = await httpClient.post(uri, headers: headers, body: body);
     logInfo("Response status code: ${response.statusCode}");
@@ -145,7 +150,10 @@ class RemoteCategoryRobleSource implements ICategorySource {
         'tableName': table,
         'idColumn': '_id',
         'idValue': category.id,
-        'updates': category.toJson(),
+        'updates': {
+          ...category.toJson(),
+          'groups': {'data': category.groups.map((g) => g.toJson()).toList()},
+        },
       }),
     );
     if (response.statusCode == 200) {
@@ -189,5 +197,122 @@ class RemoteCategoryRobleSource implements ICategorySource {
         'DeleteCategory error code ${response.statusCode}: $errorMessage',
       );
     }
+  }
+
+  // CRUD de grupos
+  @override
+  Future<void> addGroup(String categoryId, Group group) async {
+    logInfo("Adding group to category $categoryId");
+    final category = await getCategoryById(categoryId);
+    final updatedGroups = List<Group>.from(category.groups)..add(group);
+    final updatedCategory = Category(
+      id: category.id,
+      name: category.name,
+      groupingMethod: category.groupingMethod,
+      groupSize: category.groupSize,
+      courseId: category.courseId,
+      groups: updatedGroups,
+    );
+    await updateCategory(updatedCategory);
+  }
+
+  @override
+  Future<void> updateGroup(String categoryId, Group updatedGroup) async {
+    logInfo("Updating group ${updatedGroup.id} in category $categoryId");
+    final category = await getCategoryById(categoryId);
+    final updatedGroups = category.groups
+        .map((g) => g.id == updatedGroup.id ? updatedGroup : g)
+        .toList();
+    final updatedCategory = Category(
+      id: category.id,
+      name: category.name,
+      groupingMethod: category.groupingMethod,
+      groupSize: category.groupSize,
+      courseId: category.courseId,
+      groups: updatedGroups,
+    );
+    await updateCategory(updatedCategory);
+  }
+
+  @override
+  Future<void> deleteGroup(String categoryId, String groupId) async {
+    logInfo("Deleting group $groupId from category $categoryId");
+    final category = await getCategoryById(categoryId);
+    final updatedGroups = category.groups
+        .where((g) => g.id != groupId)
+        .toList();
+    final updatedCategory = Category(
+      id: category.id,
+      name: category.name,
+      groupingMethod: category.groupingMethod,
+      groupSize: category.groupSize,
+      courseId: category.courseId,
+      groups: updatedGroups,
+    );
+    await updateCategory(updatedCategory);
+  }
+
+  @override
+  Future<void> enrollStudentToGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async {
+    logInfo(
+      "Enrolling student $studentId to group $groupId in category $categoryId",
+    );
+    final category = await getCategoryById(categoryId);
+    final updatedGroups = category.groups.map((g) {
+      if (g.id == groupId && !g.studentIds.contains(studentId)) {
+        return Group(
+          id: g.id,
+          name: g.name,
+          studentIds: List<String>.from(g.studentIds)..add(studentId),
+          createdAt: g.createdAt,
+        );
+      }
+      return g;
+    }).toList();
+    final updatedCategory = Category(
+      id: category.id,
+      name: category.name,
+      groupingMethod: category.groupingMethod,
+      groupSize: category.groupSize,
+      courseId: category.courseId,
+      groups: updatedGroups,
+    );
+    await updateCategory(updatedCategory);
+  }
+
+  @override
+  Future<void> removeStudentFromGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async {
+    logInfo(
+      "Removing student $studentId from group $groupId in category $categoryId",
+    );
+    final category = await getCategoryById(categoryId);
+    final updatedGroups = category.groups.map((g) {
+      if (g.id == groupId && g.studentIds.contains(studentId)) {
+        return Group(
+          id: g.id,
+          name: g.name,
+          studentIds: List<String>.from(g.studentIds)..remove(studentId),
+          createdAt: g.createdAt,
+        );
+      }
+      return g;
+    }).toList();
+    final updatedCategory = Category(
+      id: category.id,
+      name: category.name,
+      groupingMethod: category.groupingMethod,
+      groupSize: category.groupSize,
+      courseId: category.courseId,
+      groups: updatedGroups,
+    );
+    await updateCategory(updatedCategory);
   }
 }
