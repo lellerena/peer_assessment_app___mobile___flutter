@@ -11,4 +11,9 @@ class CourseUseCase {
       repo.enrollUser(courseId, userId);
   Future<List<String>> getEnrolledUserIds(String courseId) =>
       repo.getEnrolledUserIds(courseId);
+  Future<bool> updateCourse(Course course) => repo.updateCourse(course);
+  Future<List<Course>> getCoursesByUserId(String userId) =>
+      repo.getCoursesByUserId(userId);
+  Future<List<Course>> getCoursesByTeacherId(String teacherId) =>
+      repo.getCoursesByTeacherId(teacherId);
 }

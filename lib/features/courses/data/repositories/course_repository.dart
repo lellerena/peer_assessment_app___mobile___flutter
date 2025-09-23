@@ -24,4 +24,15 @@ class CourseRepository implements ICourseRepository {
   @override
   Future<List<String>> getEnrolledUserIds(String courseId) =>
       localDataSource.getEnrolledUserIds(courseId);
+
+  @override
+  Future<bool> updateCourse(Course course) =>
+      localDataSource.updateCourse(course);
+  @override
+  Future<List<Course>> getCoursesByUserId(String userId) =>
+      localDataSource.getCoursesByUserId(userId);
+  @override
+  Future<List<Course>> getCoursesByTeacherId(String teacherId) {
+    return localDataSource.getCoursesByTeacherId(teacherId);
+  }
 }

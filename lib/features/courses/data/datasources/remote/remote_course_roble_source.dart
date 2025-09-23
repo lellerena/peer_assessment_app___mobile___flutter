@@ -301,4 +301,44 @@ class RemoteCourseRobleSource implements ICourseSource {
     // Return a copy to prevent direct modification of the source list
     return Future.value(List<Course>.from(courses));
   }
+
+  @override
+  Future<List<Course>> getCoursesByTeacherId(String teacherId) async {
+    logInfo(
+      "Getting courses for teacherId $teacherId from remote Roble source",
+    );
+
+    List<Course> courses = [];
+
+    var uri = Uri.https(baseUrl, '/database/$contract/read', {
+      'tableName': table,
+      'filter': jsonEncode({'teacherId': teacherId}),
+    });
+
+    logInfo("Fetching courses by teacherId from remote source");
+
+    final ILocalPreferences sharedPreferences = Get.find();
+
+    final token = await sharedPreferences.retrieveData<String>('token');
+    var response = await httpClient.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    logInfo("Response status code: ${response.statusCode}");
+
+    if (response.statusCode == 200) {
+      List<dynamic> decodedJson = jsonDecode(response.body);
+      courses = List<Course>.from(decodedJson.map((x) => Course.fromJson(x)));
+      logInfo(
+        "Fetched ${courses.length} courses for teacherId from remote source",
+      );
+    } else {
+      logError("Got error code ${response.statusCode}");
+      return Future.error('Error code ${response.statusCode}');
+    }
+
+    // Return a copy to prevent direct modification of the source list
+    return Future.value(List<Course>.from(courses));
+  }
 }

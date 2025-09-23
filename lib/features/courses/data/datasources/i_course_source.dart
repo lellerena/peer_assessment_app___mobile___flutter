@@ -14,4 +14,5 @@ abstract class ICourseSource {
   Future<List<String>> getEnrolledUserIds(String courseId);
 
   Future<List<Course>> getCoursesByUserId(String userId);
+  Future<List<Course>> getCoursesByTeacherId(String teacherId);
 }
