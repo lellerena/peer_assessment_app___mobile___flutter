@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
-import '../../domain/models/category.dart' as CategoryModel;
+import '../../domain/models/index.dart' as CategoryModel;
+
 import '../../domain/usecases/category_usecase.dart';
 
 class CategoryController extends GetxController {
@@ -25,7 +26,7 @@ class CategoryController extends GetxController {
     super.onClose();
   }
 
-  getCategories() async {
+  Future<void> getCategories() async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -42,7 +43,7 @@ class CategoryController extends GetxController {
     }
   }
 
-  addCategory(CategoryModel.Category category) async {
+  Future<void> addCategory(CategoryModel.Category category) async {
     try {
       isLoading.value = true;
 
@@ -65,7 +66,7 @@ class CategoryController extends GetxController {
     }
   }
 
-  updateCategory(CategoryModel.Category category) async {
+  Future<void> updateCategory(CategoryModel.Category category) async {
     try {
       isLoading.value = true;
       await categoryUseCase.updateCategory(category);
@@ -78,7 +79,7 @@ class CategoryController extends GetxController {
     }
   }
 
-  deleteCategory(CategoryModel.Category category) async {
+  Future<void> deleteCategory(CategoryModel.Category category) async {
     try {
       isLoading.value = true;
       await categoryUseCase.deleteCategory(category);
@@ -86,6 +87,83 @@ class CategoryController extends GetxController {
     } catch (e) {
       print("Error deleting category: $e");
       errorMessage.value = "Error deleting category: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // CRUD grupos
+  Future<void> addGroup(String categoryId, CategoryModel.Group group) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.addGroup(categoryId, group);
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = "Error adding group: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateGroup(String categoryId, CategoryModel.Group group) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.updateGroup(categoryId, group);
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = "Error updating group: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> deleteGroup(String categoryId, String groupId) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.deleteGroup(categoryId, groupId);
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = "Error deleting group: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> enrollStudentToGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.enrollStudentToGroup(
+        categoryId,
+        groupId,
+        studentId,
+      );
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = "Error enrolling student: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> removeStudentFromGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async {
+    try {
+      isLoading.value = true;
+      await categoryUseCase.removeStudentFromGroup(
+        categoryId,
+        groupId,
+        studentId,
+      );
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = "Error removing student: $e";
     } finally {
       isLoading.value = false;
     }

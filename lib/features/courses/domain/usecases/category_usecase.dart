@@ -1,4 +1,4 @@
-import '../models/category.dart';
+import '../models/index.dart';
 import '../repositories/i_category_repository.dart';
 
 class CategoryUseCase {
@@ -23,4 +23,28 @@ class CategoryUseCase {
 
   Future<bool> deleteCategory(Category category) async =>
       await _repository.deleteCategory(category);
+
+  // CRUD grupos
+  Future<void> addGroup(String categoryId, Group group) async =>
+      await _repository.addGroup(categoryId, group);
+
+  Future<void> updateGroup(String categoryId, Group group) async =>
+      await _repository.updateGroup(categoryId, group);
+
+  Future<void> deleteGroup(String categoryId, String groupId) async =>
+      await _repository.deleteGroup(categoryId, groupId);
+
+  Future<void> enrollStudentToGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async =>
+      await _repository.enrollStudentToGroup(categoryId, groupId, studentId);
+
+  Future<void> removeStudentFromGroup(
+    String categoryId,
+    String groupId,
+    String studentId,
+  ) async =>
+      await _repository.removeStudentFromGroup(categoryId, groupId, studentId);
 }
