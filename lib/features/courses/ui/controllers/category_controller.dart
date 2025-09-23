@@ -68,7 +68,15 @@ class CategoryController extends GetxController {
   updateCategory(CategoryModel.Category category) async {
     try {
       isLoading.value = true;
-      await categoryUseCase.updateCategory(category);
+      // Asegurar que el courseId se conserve al actualizar
+      final updated = CategoryModel.Category(
+        id: category.id,
+        name: category.name,
+        groupingMethod: category.groupingMethod,
+        groupSize: category.groupSize,
+        courseId: courseId,
+      );
+      await categoryUseCase.updateCategory(updated);
       await getCategories(); // Refresh the list
     } catch (e) {
       print("Error updating category: $e");
