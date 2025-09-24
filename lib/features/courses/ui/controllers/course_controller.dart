@@ -75,4 +75,52 @@ class CourseController extends GetxController {
   Future<void> loadEnrolled(String courseId) async {
     enrolledUserIds.value = await usecase.getEnrolledUserIds(courseId);
   }
+
+  // Verificar si el usuario actual está inscrito en un curso
+  Future<bool> isUserEnrolled(String courseId) async {
+    final userId = await sharedPreferences.retrieveData<String>('userId');
+    if (userId == null) return false;
+    
+    final enrolledIds = await usecase.getEnrolledUserIds(courseId);
+    return enrolledIds.contains(userId);
+  }
+
+  // Obtener información de usuarios por IDs (versión simplificada)
+  Future<List<Map<String, String>>> getUsersByIds(List<String> userIds) async {
+    try {
+      // Por ahora, devolvemos información básica basada en los IDs
+      // En el futuro se puede integrar con la API de usuarios
+      return userIds.map((id) => {
+        'id': id,
+        'name': _generateDisplayName(id),
+        'email': id, // Usar el ID como email temporalmente
+      }).toList();
+    } catch (e) {
+      print("Error getting users by IDs: $e");
+      return [];
+    }
+  }
+
+  // Generar un nombre de visualización basado en el ID
+  String _generateDisplayName(String userId) {
+    // Si el ID parece ser un email, usar la parte antes del @ y formatear
+    if (userId.contains('@')) {
+      final emailPart = userId.split('@')[0];
+      // Convertir puntos y guiones bajos a espacios y capitalizar
+      return emailPart
+          .replaceAll('.', ' ')
+          .replaceAll('_', ' ')
+          .split(' ')
+          .map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1).toLowerCase() : '')
+          .join(' ');
+    }
+    
+    // Si es un UUID, intentar extraer información útil
+    if (userId.length > 8) {
+      // Para UUIDs, usar las primeras 8 caracteres como identificador
+      return 'Usuario ${userId.substring(0, 8)}';
+    }
+    
+    return 'Usuario $userId';
+  }
 }

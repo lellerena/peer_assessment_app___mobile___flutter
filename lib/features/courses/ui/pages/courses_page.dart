@@ -101,7 +101,60 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
               ),
             ),
             const SizedBox(height: 20),
-            // Tres botones separados
+            // Campo de código de invitación
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.qr_code,
+                        color: Theme.of(context).primaryColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Ingresa código de invitación',
+                            border: InputBorder.none,
+                            hintStyle: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                          onSubmitted: (code) => _joinCourseWithCode(code),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => _showJoinCourseDialog(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                        child: const Text('Unirse'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -170,9 +223,9 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
                             ),
                           );
                         }
-                        return _CourseList(items: availableCourses);
+                        return _CourseList(items: availableCourses, currentUserId: userId, tabType: 'available');
                       case 1: // Creados
-                        return _CourseList(items: created);
+                        return _CourseList(items: created, currentUserId: userId, tabType: 'created');
                       case 2: // Inscritos
                         if (enrolledCourses.isEmpty) {
                           return const Center(
@@ -185,9 +238,9 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
                             ),
                           );
                         }
-                        return _CourseList(items: enrolledCourses);
+                        return _CourseList(items: enrolledCourses, currentUserId: userId, tabType: 'enrolled');
                       default:
-                        return _CourseList(items: all);
+                        return _CourseList(items: all, currentUserId: userId, tabType: 'all');
                     }
                   });
                 },
@@ -242,6 +295,76 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
       ),
     );
   }
+
+  void _joinCourseWithCode(String code) {
+    if (code.trim().isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Por favor ingresa un código de invitación',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Simular unirse al curso con el código
+    Get.snackbar(
+      'Código Ingresado',
+      'Código: $code\n\nFuncionalidad en desarrollo - Por ahora es solo para pruebas',
+      backgroundColor: Theme.of(context).primaryColor,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  void _showJoinCourseDialog() {
+    final TextEditingController codeController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Unirse a Curso'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Ingresa el código de invitación que te compartió el profesor:'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                decoration: InputDecoration(
+                  hintText: 'Ej: INV123456',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  prefixIcon: Icon(Icons.qr_code, color: Theme.of(context).primaryColor),
+                ),
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _joinCourseWithCode(codeController.text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Unirse'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _TabButton extends StatelessWidget {
@@ -282,7 +405,28 @@ class _TabButton extends StatelessWidget {
 
 class _CourseList extends StatelessWidget {
   final List<Course> items;
-  const _CourseList({required this.items});
+  final String? currentUserId;
+  final String tabType; // 'available', 'created', 'enrolled'
+  const _CourseList({required this.items, this.currentUserId, this.tabType = 'all'});
+
+  bool _shouldShowEnterButton(Course course, String? currentUserId) {
+    if (currentUserId == null) return false;
+    
+    switch (tabType) {
+      case 'available':
+        // En "Disponibles": solo mostrar "Enter" si ya está inscrito
+        return course.studentIds.contains(currentUserId);
+      case 'created':
+        // En "Creados": siempre mostrar "Enter" porque es el profesor
+        return course.teacherId == currentUserId;
+      case 'enrolled':
+        // En "Inscritos": siempre mostrar "Enter" porque ya está inscrito
+        return true;
+      default:
+        // Por defecto: mostrar "Enter" si es profesor o está inscrito
+        return course.teacherId == currentUserId || course.studentIds.contains(currentUserId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,6 +453,7 @@ class _CourseList extends StatelessWidget {
             child: _CourseCard(
               course: course,
               isHighlighted: i == 0,
+              isCreatedByUser: _shouldShowEnterButton(course, currentUserId),
             ),
           );
         },
@@ -317,14 +462,80 @@ class _CourseList extends StatelessWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _CourseCard extends StatefulWidget {
   final Course course;
   final bool isHighlighted;
+  final bool isCreatedByUser;
   
   const _CourseCard({
     required this.course,
     this.isHighlighted = false,
+    this.isCreatedByUser = false,
   });
+
+  @override
+  State<_CourseCard> createState() => _CourseCardState();
+}
+
+class _CourseCardState extends State<_CourseCard> {
+  bool _isEnrolled = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEnrollmentStatus();
+  }
+
+  Future<void> _checkEnrollmentStatus() async {
+    final controller = Get.find<CourseController>();
+    final isEnrolled = await controller.isUserEnrolled(widget.course.id);
+    if (mounted) {
+      setState(() {
+        _isEnrolled = isEnrolled;
+      });
+    }
+  }
+
+  Future<void> _enrollInCourse() async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final controller = Get.find<CourseController>();
+      await controller.enroll(widget.course.id);
+      
+      if (mounted) {
+        setState(() {
+          _isEnrolled = true;
+          _isLoading = false;
+        });
+        
+        Get.snackbar(
+          'Éxito',
+          'Te has inscrito exitosamente en ${widget.course.name}',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        Get.snackbar(
+          'Error',
+          'Error al inscribirse: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -333,8 +544,8 @@ class _CourseCard extends StatelessWidget {
         color: Theme.of(context).primaryColor.withOpacity(0.1), // Color morado claro del tema
         borderRadius: BorderRadius.circular(16), // Bordes redondeados
         border: Border.all(
-          color: isHighlighted ? Theme.of(context).primaryColor : Colors.grey[300]!,
-          width: isHighlighted ? 3 : 1,
+          color: widget.isHighlighted ? Theme.of(context).primaryColor : Colors.grey[300]!,
+          width: widget.isHighlighted ? 3 : 1,
         ),
       ),
       child: Column(
@@ -346,7 +557,7 @@ class _CourseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  course.name,
+                  widget.course.name,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -355,7 +566,7 @@ class _CourseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  course.description ?? 'Sin descripción',
+                  widget.course.description ?? 'Sin descripción',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
@@ -375,7 +586,15 @@ class _CourseCard extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Get.to(() => CourseDetailPage(courseId: course.id)),
+                onPressed: _isLoading ? null : () {
+                  if (widget.isCreatedByUser || _isEnrolled) {
+                    // Si es creado por el usuario o está inscrito, ir al detalle del curso
+                    Get.to(() => CourseDetailPage(courseId: widget.course.id));
+                  } else {
+                    // Si no está inscrito, inscribirse
+                    _enrollInCourse();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
@@ -385,13 +604,22 @@ class _CourseCard extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text(
-                  'Enter',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        (widget.isCreatedByUser || _isEnrolled) ? 'Enter' : 'Inscribirse',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),

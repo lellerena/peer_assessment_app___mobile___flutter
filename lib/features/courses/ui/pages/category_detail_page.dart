@@ -1,0 +1,465 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../domain/models/category.dart';
+import '../../domain/models/group.dart';
+import '../../domain/usecases/category_usecase.dart';
+import '../controllers/category_controller.dart';
+import '../../domain/models/course.dart';
+
+class CategoryDetailPage extends StatelessWidget {
+  final Category category;
+  final Course course;
+  final bool isTeacher;
+
+  const CategoryDetailPage({
+    super.key,
+    required this.category,
+    required this.course,
+    required this.isTeacher,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Get.back(),
+        ),
+        title: Text(
+          category.name,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: _CategoryDetailContent(
+          category: category,
+          course: course,
+          isTeacher: isTeacher,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryDetailContent extends StatefulWidget {
+  final Category category;
+  final Course course;
+  final bool isTeacher;
+
+  const _CategoryDetailContent({
+    required this.category,
+    required this.course,
+    required this.isTeacher,
+  });
+
+  @override
+  State<_CategoryDetailContent> createState() => _CategoryDetailContentState();
+}
+
+class _CategoryDetailContentState extends State<_CategoryDetailContent> {
+  late CategoryController _controller;
+  List<Group> _groups = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeController();
+    _loadGroups();
+  }
+
+  void _initializeController() {
+    final String tag = 'category_controller_${widget.course.id}';
+    if (Get.isRegistered<CategoryController>(tag: tag)) {
+      _controller = Get.find<CategoryController>(tag: tag);
+    } else {
+      // Obtener el CategoryUseCase del contenedor de dependencias
+      final categoryUseCase = Get.find<CategoryUseCase>();
+      _controller = Get.put(CategoryController(categoryUseCase, widget.course.id), tag: tag);
+    }
+  }
+
+  Future<void> _loadGroups() async {
+    try {
+      // Por ahora, simular carga de grupos
+      // En el futuro, esto vendrá del CategoryController
+      await Future.delayed(const Duration(seconds: 1));
+      
+      if (mounted) {
+        setState(() {
+          _groups = []; // Simular que no hay grupos aún
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Información de la categoría
+          _CategoryInfoCard(
+            category: widget.category,
+            isTeacher: widget.isTeacher,
+            onEdit: () => _showEditCategoryDialog(),
+            onDelete: () => _showDeleteConfirmation(),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Sección de grupos
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Grupos (${_groups.length})',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              if (widget.isTeacher)
+                ElevatedButton(
+                  onPressed: () => _showCreateGroupDialog(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Crear Grupo'),
+                ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Lista de grupos
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _groups.isEmpty
+                    ? _EmptyGroupsState(isTeacher: widget.isTeacher)
+                    : _GroupsList(
+                        groups: _groups,
+                        isTeacher: widget.isTeacher,
+                        onEditGroup: (group) => _showEditGroupDialog(group),
+                        onDeleteGroup: (group) => _showDeleteGroupConfirmation(group),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditCategoryDialog() {
+    // Implementar edición de categoría
+    Get.snackbar(
+      'Editar Categoría',
+      'Funcionalidad de edición en desarrollo',
+      backgroundColor: Theme.of(context).primaryColor,
+      colorText: Colors.white,
+    );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: Text('¿Estás seguro de que quieres eliminar la categoría "${widget.category.name}"?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Eliminar'),
+              onPressed: () {
+                _controller.deleteCategory(widget.category);
+                Navigator.of(context).pop();
+                Get.back();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCreateGroupDialog() {
+    // Implementar creación de grupo
+    Get.snackbar(
+      'Crear Grupo',
+      'Funcionalidad de creación de grupo en desarrollo',
+      backgroundColor: Theme.of(context).primaryColor,
+      colorText: Colors.white,
+    );
+  }
+
+  void _showEditGroupDialog(Group group) {
+    // Implementar edición de grupo
+    Get.snackbar(
+      'Editar Grupo',
+      'Funcionalidad de edición de grupo en desarrollo',
+      backgroundColor: Theme.of(context).primaryColor,
+      colorText: Colors.white,
+    );
+  }
+
+  void _showDeleteGroupConfirmation(Group group) {
+    // Implementar eliminación de grupo
+    Get.snackbar(
+      'Eliminar Grupo',
+      'Funcionalidad de eliminación de grupo en desarrollo',
+      backgroundColor: Theme.of(context).primaryColor,
+      colorText: Colors.white,
+    );
+  }
+}
+
+class _CategoryInfoCard extends StatelessWidget {
+  final Category category;
+  final bool isTeacher;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _CategoryInfoCard({
+    required this.category,
+    required this.isTeacher,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Método de agrupación: ${category.groupingMethod.name}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tamaño del grupo: ${category.groupSize}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isTeacher)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+                        onPressed: onEdit,
+                        tooltip: 'Editar categoría',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                        onPressed: onDelete,
+                        tooltip: 'Eliminar categoría',
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyGroupsState extends StatelessWidget {
+  final bool isTeacher;
+
+  const _EmptyGroupsState({required this.isTeacher});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.group_outlined,
+            size: 80,
+            color: Theme.of(context).primaryColor.withOpacity(0.5),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'No hay grupos creados',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isTeacher 
+                ? 'Crea grupos para organizar a los estudiantes'
+                : 'Los grupos aparecerán aquí cuando el profesor los cree',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupsList extends StatelessWidget {
+  final List<Group> groups;
+  final bool isTeacher;
+  final Function(Group) onEditGroup;
+  final Function(Group) onDeleteGroup;
+
+  const _GroupsList({
+    required this.groups,
+    required this.isTeacher,
+    required this.onEditGroup,
+    required this.onDeleteGroup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: groups.length,
+      itemBuilder: (context, index) {
+        final group = groups[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).primaryColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  child: Text(
+                    'G${index + 1}',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${group.studentIds.length} estudiantes',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isTeacher)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+                        onPressed: () => onEditGroup(group),
+                        tooltip: 'Editar grupo',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                        onPressed: () => onDeleteGroup(group),
+                        tooltip: 'Eliminar grupo',
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

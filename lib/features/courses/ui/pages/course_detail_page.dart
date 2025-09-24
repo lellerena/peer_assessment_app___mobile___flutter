@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/course.dart';
@@ -9,6 +10,7 @@ import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
 import '../../../../core/i_local_preferences.dart';
 import 'enrolled_students_page.dart';
+import 'all_participants_page.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final String courseId;
@@ -32,9 +34,12 @@ class CourseDetailPage extends StatelessWidget {
         final course = courses.firstWhere((e) => e.id == courseId);
         bool isTeacher = false;
         if (rawUser != null) {
-          // el rol se muestra sólo para navegación condicional (teacher/student)
-          isTeacher = rawUser.contains('teacher');
-          print('DEBUG: rawUser = $rawUser, isTeacher = $isTeacher');
+          // Determinar si el usuario es profesor del curso específico
+          // Un usuario es profesor si es el creador del curso (teacherId)
+          final userData = json.decode(rawUser);
+          final userId = userData['id'] as String?;
+          isTeacher = userId != null && course.teacherId == userId;
+          print('DEBUG: rawUser = $rawUser, userId = $userId, course.teacherId = ${course.teacherId}, isTeacher = $isTeacher');
         }
 
         return Scaffold(
@@ -65,7 +70,7 @@ class _CourseDetailTabbed extends StatefulWidget {
 }
 
 class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
-  int _selected = 0; // 0: Info, 1: Categorías, 2: Actividades, 3: Grupos
+  int _selected = 0; // 0: Info, 1: Categorías, 2: Actividades, 3: Participantes
 
   @override
   void initState() {
@@ -97,8 +102,8 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -108,22 +113,9 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                 const SizedBox(width: 8),
                 _ChipButton(text: 'Categorías', selected: _selected == 1, onTap: () => setState(() => _selected = 1)),
                 const SizedBox(width: 8),
-                _ChipButton(text: 'Actividades', selected: _selected == 2, onTap: () => setState(() => _selected = 2)),
+                _ChipButton(text: 'Activi', selected: _selected == 2, onTap: () => setState(() => _selected = 2)),
                 const SizedBox(width: 8),
-                _ChipButton(text: 'Grupos', selected: _selected == 3, onTap: () => setState(() => _selected = 3)),
-                const SizedBox(width: 8),
-                if (isTeacher)
-                  _ChipButton(
-                    text: 'Agregar',
-                    onTap: () {
-                      setState(() => _selected = 1); // Ir a pestaña Categorías
-                      final String tagNow = 'category_controller_${course.id}';
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final controller = Get.find<CategoryController>(tag: tagNow);
-                        _showAddEditDialog(context, controller);
-                      });
-                    },
-                  ),
+                _ChipButton(text: 'Participantes', selected: _selected == 3, onTap: () => setState(() => _selected = 3)),
               ],
             ),
           ),
@@ -146,63 +138,16 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                           style: const TextStyle(color: Colors.black87, height: 1.4),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                const SizedBox(height: 16),
                       // Participantes
-                      _PurpleCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Participantes',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ...course.studentIds.take(3).map((id) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                                        child: Text(
-                                          id.isNotEmpty ? id[0].toUpperCase() : '?',
-                                          style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(id, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black87)),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                            if (course.studentIds.isEmpty)
-                              const Text('Aún no hay estudiantes inscritos.', style: TextStyle(color: Colors.black54)),
-                            const SizedBox(height: 12),
-                            if (isTeacher)
-                              ElevatedButton(
-                                onPressed: () => Get.to(() => EnrolledStudentsPage(course: course)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                child: const Text('Ver estudiantes'),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      _ParticipantsCard(course: course, isTeacher: isTeacher),
+                const SizedBox(height: 16),
                       
                       // Actividades
                       _PurpleCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                  children: [
                             const Text(
                               'Actividades',
                               style: TextStyle(
@@ -217,8 +162,8 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                               style: TextStyle(color: Colors.black87),
                             ),
                             const SizedBox(height: 12),
-                            if (isTeacher)
-                              ElevatedButton(
+                    if (isTeacher)
+                      ElevatedButton(
                                 onPressed: () {
                                   // TODO: Implementar navegación a crear actividad
                                 },
@@ -358,6 +303,8 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                                     category: category,
                                     onEdit: () => _showAddEditDialog(context, controller, category),
                                     onDelete: () => _showDeleteConfirmation(context, controller, category),
+                                    isTeacher: isTeacher,
+                                    course: course,
                                   );
                                 },
                               );
@@ -367,14 +314,14 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                       ),
                     ],
                   ),
-                  floatingActionButton: FloatingActionButton(
+                  floatingActionButton: isTeacher ? FloatingActionButton(
                     backgroundColor: Theme.of(context).primaryColor,
                     onPressed: () {
                       final controller = Get.find<CategoryController>(tag: tag);
                       _showAddEditDialog(context, controller);
                     },
                     child: const Icon(Icons.add, color: Colors.white),
-                  ),
+                  ) : null,
                 ),
 
                 // Actividades (placeholder visual)
@@ -400,28 +347,8 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                   ),
                 ),
 
-                // Grupos (placeholder visual)
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Grupos', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                      const SizedBox(height: 12),
-                      _PurpleCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Grupo 1', style: TextStyle(fontWeight: FontWeight.w600)),
-                            SizedBox(height: 8),
-                            Text('Descripción del grupo. Texto de ejemplo para ocupar espacio.',
-                                style: TextStyle(color: Colors.black87, height: 1.4)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Participantes (todos los usuarios inscritos)
+                _AllParticipantsTab(course: course, isTeacher: isTeacher),
               ],
             ),
           ),
@@ -540,6 +467,316 @@ class _PurpleCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: child,
+      ),
+    );
+  }
+}
+
+class _ParticipantsCard extends StatefulWidget {
+  final Course course;
+  final bool isTeacher;
+  
+  const _ParticipantsCard({
+    required this.course,
+    required this.isTeacher,
+  });
+
+  @override
+  State<_ParticipantsCard> createState() => _ParticipantsCardState();
+}
+
+class _ParticipantsCardState extends State<_ParticipantsCard> {
+  List<Map<String, String>> _participants = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final controller = Get.find<CourseController>();
+      final participants = await controller.getUsersByIds(widget.course.studentIds)
+          .timeout(const Duration(seconds: 10));
+      
+      if (mounted) {
+        setState(() {
+          _participants = participants;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error loading participants: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _PurpleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Participantes',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            )
+          else if (_participants.isEmpty)
+            Text(
+              widget.course.studentIds.isEmpty 
+                  ? 'Aún no hay estudiantes inscritos.'
+                  : 'Error al cargar participantes.',
+              style: const TextStyle(color: Colors.black54),
+            )
+          else ...[
+            // Mostrar máximo 4 participantes
+            ..._participants.take(4).map((userData) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                        child: Text(
+                          userData['name']?.isNotEmpty == true ? userData['name']![0].toUpperCase() : '?',
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userData['name'] ?? 'Usuario',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              userData['email'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+            
+            // Si hay más de 4 participantes, mostrar botón para ver todos
+            if (_participants.length > 4) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () => Get.to(() => AllParticipantsPage(
+                    course: widget.course,
+                    participants: _participants,
+                  )),
+                  child: Text(
+                    'Ver todos los participantes (${_participants.length})',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            
+            const SizedBox(height: 12),
+            if (widget.isTeacher)
+              ElevatedButton(
+                onPressed: () => Get.to(() => EnrolledStudentsPage(course: widget.course)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Ver estudiantes'),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AllParticipantsTab extends StatefulWidget {
+  final Course course;
+  final bool isTeacher;
+  
+  const _AllParticipantsTab({
+    required this.course,
+    required this.isTeacher,
+  });
+
+  @override
+  State<_AllParticipantsTab> createState() => _AllParticipantsTabState();
+}
+
+class _AllParticipantsTabState extends State<_AllParticipantsTab> {
+  List<Map<String, String>> _participants = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final controller = Get.find<CourseController>();
+      final participants = await controller.getUsersByIds(widget.course.studentIds)
+          .timeout(const Duration(seconds: 10));
+      
+      if (mounted) {
+        setState(() {
+          _participants = participants;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error loading participants: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Participantes (${_participants.length})',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
+              ),
+              if (widget.isTeacher)
+                ElevatedButton(
+                  onPressed: () => Get.to(() => EnrolledStudentsPage(course: widget.course)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Gestionar'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            )
+          else if (_participants.isEmpty)
+            _PurpleCard(
+              child: const Text(
+                'Aún no hay estudiantes inscritos.',
+                style: TextStyle(color: Colors.black54),
+              ),
+            )
+          else
+            ..._participants.map((userData) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: _PurpleCard(
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                          child: Text(
+                            userData['name']?.isNotEmpty == true ? userData['name']![0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userData['name'] ?? 'Usuario',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                userData['email'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'ESTUDIANTE',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+        ],
       ),
     );
   }
