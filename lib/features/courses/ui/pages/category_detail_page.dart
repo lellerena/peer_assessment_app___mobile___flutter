@@ -5,6 +5,8 @@ import '../../domain/models/group.dart';
 import '../../domain/usecases/category_usecase.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
+import '../widgets/add_edit_group_dialog.dart';
+import '../widgets/group_generation_dialog.dart';
 
 class CategoryDetailPage extends StatelessWidget {
   final Category category;
@@ -90,13 +92,15 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
 
   Future<void> _loadGroups() async {
     try {
-      // Por ahora, simular carga de grupos
-      // En el futuro, esto vendrá del CategoryController
-      await Future.delayed(const Duration(seconds: 1));
+      setState(() {
+        _isLoading = true;
+      });
       
+      // Load groups from the category data
+      // The category already contains groups, so we can use them directly
       if (mounted) {
         setState(() {
-          _groups = []; // Simular que no hay grupos aún
+          _groups = List<Group>.from(widget.category.groups);
           _isLoading = false;
         });
       }
@@ -106,6 +110,26 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _refreshCategory() async {
+    try {
+      await _controller.getCategories();
+      // Find the updated category and refresh groups
+      final updatedCategories = _controller.categories;
+      final updatedCategory = updatedCategories.cast<Category?>().firstWhere(
+        (cat) => cat?.id == widget.category.id,
+        orElse: () => null,
+      );
+      
+      if (updatedCategory != null && mounted) {
+        setState(() {
+          _groups = List<Group>.from(updatedCategory.groups);
+        });
+      }
+    } catch (e) {
+      print("Error refreshing category: $e");
     }
   }
 
@@ -139,15 +163,33 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
                 ),
               ),
               if (widget.isTeacher)
-                ElevatedButton(
-                  onPressed: () => _showCreateGroupDialog(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('Crear Grupo'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.category.groupingMethod == GroupingMethod.random)
+                      ElevatedButton.icon(
+                        onPressed: () => _showGroupGenerationDialog(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.shuffle),
+                        label: const Text('Generar'),
+                      ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _showCreateGroupDialog(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Crear Grupo'),
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -212,33 +254,159 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
   }
 
   void _showCreateGroupDialog() {
-    // Implementar creación de grupo
-    Get.snackbar(
-      'Crear Grupo',
-      'Funcionalidad de creación de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddEditGroupDialog(
+          onSave: (Group group) async {
+            try {
+              await _controller.addGroup(widget.category.id, group);
+              await _refreshCategory();
+              Get.snackbar(
+                'Éxito',
+                'Grupo creado exitosamente',
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            } catch (e) {
+              Get.snackbar(
+                'Error',
+                'Error al crear el grupo: $e',
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+            }
+          },
+          availableStudentIds: widget.course.studentIds,
+          currentlyAssignedStudentIds: _getAllAssignedStudentIds(),
+        );
+      },
+    );
+  }
+
+  void _showGroupGenerationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return GroupGenerationDialog(
+          onSave: (List<Group> groups) async {
+            try {
+              // Add all generated groups
+              for (final group in groups) {
+                await _controller.addGroup(widget.category.id, group);
+              }
+              await _refreshCategory();
+              Get.snackbar(
+                'Éxito',
+                '${groups.length} grupos generados exitosamente',
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            } catch (e) {
+              Get.snackbar(
+                'Error',
+                'Error al generar grupos: $e',
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+            }
+          },
+          availableStudentIds: _getUnassignedStudentIds(),
+          defaultGroupSize: widget.category.groupSize,
+        );
+      },
     );
   }
 
   void _showEditGroupDialog(Group group) {
-    // Implementar edición de grupo
-    Get.snackbar(
-      'Editar Grupo',
-      'Funcionalidad de edición de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddEditGroupDialog(
+          group: group,
+          onSave: (Group updatedGroup) async {
+            try {
+              await _controller.updateGroup(widget.category.id, updatedGroup);
+              await _refreshCategory();
+              Get.snackbar(
+                'Éxito',
+                'Grupo actualizado exitosamente',
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            } catch (e) {
+              Get.snackbar(
+                'Error',
+                'Error al actualizar el grupo: $e',
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+            }
+          },
+          availableStudentIds: widget.course.studentIds,
+          currentlyAssignedStudentIds: _getAllAssignedStudentIds()
+            ..removeWhere((id) => group.studentIds.contains(id)),
+        );
+      },
     );
   }
 
   void _showDeleteGroupConfirmation(Group group) {
-    // Implementar eliminación de grupo
-    Get.snackbar(
-      'Eliminar Grupo',
-      'Funcionalidad de eliminación de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: Text(
+            '¿Estás seguro de que quieres eliminar el grupo "${group.name}"?\n\n'
+            'Los estudiantes quedarán sin asignar.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Eliminar'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await _controller.deleteGroup(widget.category.id, group.id);
+                  await _refreshCategory();
+                  Get.snackbar(
+                    'Éxito',
+                    'Grupo eliminado exitosamente',
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                  );
+                } catch (e) {
+                  Get.snackbar(
+                    'Error',
+                    'Error al eliminar el grupo: $e',
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  List<String> _getAllAssignedStudentIds() {
+    return _groups.expand((group) => group.studentIds).toList();
+  }
+
+  List<String> _getUnassignedStudentIds() {
+    final assignedIds = _getAllAssignedStudentIds();
+    return widget.course.studentIds
+        .where((id) => !assignedIds.contains(id))
+        .toList();
   }
 }
 
@@ -408,7 +576,7 @@ class _GroupsList extends StatelessWidget {
                 CircleAvatar(
                   backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
                   child: Text(
-                    'G${index + 1}',
+                    (index + 1).toString(),
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontWeight: FontWeight.bold,

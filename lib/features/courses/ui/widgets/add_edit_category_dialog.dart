@@ -43,7 +43,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text(widget.category == null ? 'Add Category' : 'Edit Category'),
+      title: Text(widget.category == null ? 'Agregar Categoría' : 'Editar Categoría'),
       content: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -54,13 +54,13 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
               TextFormField(
                 initialValue: _name,
                 decoration: const InputDecoration(
-                  labelText: 'Name',
+                  labelText: 'Nombre',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.label),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().length < 3) {
-                    return 'Name must be at least 3 characters long';
+                    return 'El nombre debe tener al menos 3 caracteres';
                   }
                   return null;
                 },
@@ -70,7 +70,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
               DropdownButtonFormField<GroupingMethod>(
                 value: _groupingMethod,
                 decoration: const InputDecoration(
-                  labelText: 'Grouping Method',
+                  labelText: 'Método de Agrupación',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.group_work),
                 ),
@@ -78,7 +78,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
                     .map(
                       (method) => DropdownMenuItem(
                         value: method,
-                        child: Text(method.name),
+                        child: Text(_getGroupingMethodText(method)),
                       ),
                     )
                     .toList(),
@@ -94,7 +94,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
               TextFormField(
                 controller: _sizeController,
                 decoration: const InputDecoration(
-                  labelText: 'Group Size',
+                  labelText: 'Tamaño del Grupo',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.format_list_numbered),
                 ),
@@ -102,14 +102,14 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a size';
+                    return 'Por favor ingresa un tamaño';
                   }
                   final size = int.tryParse(value);
                   if (size == null) {
-                    return 'Please enter a valid number';
+                    return 'Por favor ingresa un número válido';
                   }
                   if (size < 2) {
-                    return 'Group size must be at least 2';
+                    return 'El tamaño del grupo debe ser al menos 2';
                   }
                   return null;
                 },
@@ -143,7 +143,7 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Cancelar'),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -164,9 +164,20 @@ class _AddEditCategoryDialogState extends State<AddEditCategoryDialog> {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Save'),
+          child: const Text('Guardar'),
         ),
       ],
     );
+  }
+
+  String _getGroupingMethodText(GroupingMethod method) {
+    switch (method) {
+      case GroupingMethod.random:
+        return 'Aleatorio';
+      case GroupingMethod.selfAssigned:
+        return 'Auto-asignado';
+      case GroupingMethod.manual:
+        return 'Manual';
+    }
   }
 }

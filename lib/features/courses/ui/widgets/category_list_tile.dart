@@ -37,21 +37,36 @@ class CategoryListTile extends StatelessWidget {
           }
         },
         leading: CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          child: Text(
-            category.name.substring(0, 1).toUpperCase(),
-            style: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
+          backgroundColor: category.groups.isNotEmpty 
+              ? colorScheme.secondaryContainer 
+              : colorScheme.primaryContainer,
+          child: Icon(
+            category.groups.isNotEmpty ? Icons.groups : Icons.category,
+            color: category.groups.isNotEmpty 
+                ? colorScheme.onSecondaryContainer 
+                : colorScheme.onPrimaryContainer,
           ),
         ),
         title: Text(
           category.name,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          'Grouping: ${category.groupingMethod.name} / Size: ${category.groupSize}',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Agrupación: ${_getGroupingMethodText(category.groupingMethod)} / Tamaño: ${category.groupSize}',
+            ),
+            if (category.groups.isNotEmpty)
+              Text(
+                '${category.groups.length} grupos • ${category.groups.fold<int>(0, (sum, group) => sum + group.studentIds.length)} estudiantes asignados',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         trailing: isTeacher ? Row(
           mainAxisSize: MainAxisSize.min,
@@ -70,5 +85,16 @@ class CategoryListTile extends StatelessWidget {
         ) : null,
       ),
     );
+  }
+
+  String _getGroupingMethodText(GroupingMethod method) {
+    switch (method) {
+      case GroupingMethod.random:
+        return 'Aleatorio';
+      case GroupingMethod.selfAssigned:
+        return 'Auto-asignado';
+      case GroupingMethod.manual:
+        return 'Manual';
+    }
   }
 }
