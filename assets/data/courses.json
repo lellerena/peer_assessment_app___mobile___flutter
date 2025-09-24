@@ -5,23 +5,23 @@
         "description": "Curso de prueba para la segunda entrega.",
         "categoryIds": ["cat1"],
         "teacherId": "u1",
-        "studentIds": ["u3", "u4"]
+        "studentIds": ["u3", "u4", "u5", "u6"]
     },
     {
         "id": "c1",
         "name": "Flutter Avanzado",
         "description": "Aprende a construir aplicaciones complejas con Flutter.",
-        "categoryIds": ["cat1"],
+        "categoryIds": ["cat1", "cat2"],
         "teacherId": "u1",
-        "studentIds": ["u2"]
+        "studentIds": ["u2", "u3", "u4", "u5", "u6", "u7"]
     },
     {
         "id": "c2",
         "name": "Dart para Principiantes",
         "description": "Conceptos básicos y fundamentos del lenguaje Dart.",
-        "categoryIds": ["cat1"],
+        "categoryIds": ["cat3"],
         "teacherId": "u1",
-        "studentIds": []
+        "studentIds": ["u4", "u5", "u8", "u9", "u10"]
     },
     {
         "id": "c3",
@@ -29,6 +29,6 @@
         "description": "Domina la gestión de estado en Flutter con GetX.",
         "categoryIds": ["cat2"],
         "teacherId": "u1",
-        "studentIds": ["u2"]
+        "studentIds": ["u2", "u6", "u7", "u8"]
     }
 ]

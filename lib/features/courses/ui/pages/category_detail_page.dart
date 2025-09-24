@@ -215,12 +215,23 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
   }
 
   void _showEditCategoryDialog() {
-    // Implementar edición de categoría
-    Get.snackbar(
-      'Editar Categoría',
-      'Funcionalidad de edición en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+    final currentCategory = widget.category;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // We need to import the AddEditCategoryDialog
+        // For now, show a simple message
+        return AlertDialog(
+          title: const Text('Editar Categoría'),
+          content: const Text('La edición de categorías mantendrá los grupos existentes.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -456,7 +467,7 @@ class _CategoryInfoCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Método de agrupación: ${category.groupingMethod.name}',
+                        'Método de agrupación: ${_getGroupingMethodText(category.groupingMethod)}',
                         style: const TextStyle(
                           fontSize: 16,
                           color: Colors.black87,
@@ -470,6 +481,17 @@ class _CategoryInfoCard extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
+                      if (category.groups.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Grupos creados: ${category.groups.length}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -495,6 +517,17 @@ class _CategoryInfoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getGroupingMethodText(GroupingMethod method) {
+    switch (method) {
+      case GroupingMethod.random:
+        return 'Aleatorio';
+      case GroupingMethod.selfAssigned:
+        return 'Auto-asignado';
+      case GroupingMethod.manual:
+        return 'Manual';
+    }
   }
 }
 
@@ -526,9 +559,9 @@ class _EmptyGroupsState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isTeacher 
-                ? 'Crea grupos para organizar a los estudiantes'
+                ? 'Crea grupos para organizar a los estudiantes.\n\nUsa "Generar" para grupos aleatorios o "Crear Grupo" para grupos manuales.'
                 : 'Los grupos aparecerán aquí cuando el profesor los cree',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.black54,
             ),

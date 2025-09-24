@@ -4,20 +4,49 @@
     "name": "Desarrollo Frontend",
     "groupingMethod": "random",
     "groupSize": 3,
-    "courseId": "c1"
+    "courseId": "c1",
+    "groups": {
+      "data": [
+        {
+          "id": "group1",
+          "name": "Grupo Frontend A",
+          "studentIds": ["u2", "u3"],
+          "createdAt": "2024-01-15T10:30:00.000Z"
+        }
+      ]
+    }
   },
   {
     "_id": "cat2",
     "name": "Bases de Datos",
     "groupingMethod": "manual",
     "groupSize": 4,
-    "courseId": "c1"
+    "courseId": "c1",
+    "groups": {
+      "data": []
+    }
   },
   {
     "_id": "cat3",
     "name": "Algoritmos",
     "groupingMethod": "selfAssigned",
     "groupSize": 2,
-    "courseId": "c2"
+    "courseId": "c2",
+    "groups": {
+      "data": [
+        {
+          "id": "group2",
+          "name": "Grupo Algoritmos 1",
+          "studentIds": ["u4"],
+          "createdAt": "2024-01-16T14:20:00.000Z"
+        },
+        {
+          "id": "group3",
+          "name": "Grupo Algoritmos 2",
+          "studentIds": ["u5"],
+          "createdAt": "2024-01-16T14:25:00.000Z"
+        }
+      ]
+    }
   }
 ]
