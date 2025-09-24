@@ -5,6 +5,7 @@ import '../../domain/models/group.dart';
 import '../../domain/usecases/category_usecase.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
+import '../controllers/course_controller.dart';
 
 class CategoryDetailPage extends StatelessWidget {
   final Category category;
@@ -67,14 +68,11 @@ class _CategoryDetailContent extends StatefulWidget {
 
 class _CategoryDetailContentState extends State<_CategoryDetailContent> {
   late CategoryController _controller;
-  List<Group> _groups = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _initializeController();
-    _loadGroups();
   }
 
   void _initializeController() {
@@ -82,98 +80,136 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
     if (Get.isRegistered<CategoryController>(tag: tag)) {
       _controller = Get.find<CategoryController>(tag: tag);
     } else {
-      // Obtener el CategoryUseCase del contenedor de dependencias
       final categoryUseCase = Get.find<CategoryUseCase>();
       _controller = Get.put(CategoryController(categoryUseCase, widget.course.id), tag: tag);
     }
   }
 
-  Future<void> _loadGroups() async {
-    try {
-      // Por ahora, simular carga de grupos
-      // En el futuro, esto vendrá del CategoryController
-      await Future.delayed(const Duration(seconds: 1));
-      
-      if (mounted) {
-        setState(() {
-          _groups = []; // Simular que no hay grupos aún
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Información de la categoría
-          _CategoryInfoCard(
-            category: widget.category,
-            isTeacher: widget.isTeacher,
-            onEdit: () => _showEditCategoryDialog(),
-            onDelete: () => _showDeleteConfirmation(),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Sección de grupos
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Grupos (${_groups.length})',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+    final String tag = 'category_controller_${widget.course.id}';
+    return GetBuilder<CategoryController>(
+      tag: tag,
+      builder: (_) {
+        final categories = _controller.categories;
+        final current = categories.firstWhere(
+          (c) => c.id == widget.category.id,
+          orElse: () => widget.category,
+        );
+
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Obx(() {
+            if (_controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (_controller.errorMessage.value.isNotEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 80,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _controller.errorMessage.value,
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => _controller.getCategories(),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
                 ),
-              ),
-              if (widget.isTeacher)
-                ElevatedButton(
-                  onPressed: () => _showCreateGroupDialog(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('Crear Grupo'),
+              );
+            }
+
+            final groups = current.groups;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CategoryInfoCard(
+                  category: current,
+                  isTeacher: widget.isTeacher,
+                  onEdit: () => _showEditCategoryDialog(),
+                  onDelete: () => _showDeleteConfirmation(),
                 ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Lista de grupos
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _groups.isEmpty
-                    ? _EmptyGroupsState(isTeacher: widget.isTeacher)
-                    : _GroupsList(
-                        groups: _groups,
-                        isTeacher: widget.isTeacher,
-                        onEditGroup: (group) => _showEditGroupDialog(group),
-                        onDeleteGroup: (group) => _showDeleteGroupConfirmation(group),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Grupos (${groups.length})',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
-          ),
-        ],
-      ),
+                    ),
+                    if (widget.isTeacher)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (current.groupingMethod.name == 'random') ...[
+                            OutlinedButton(
+                              onPressed: () => _onRegenerateRandom(current),
+                              child: const Text('Regenerar'),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          ElevatedButton(
+                            onPressed: () => _showCreateGroupDialog(current),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text('Crear Grupo'),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: groups.isEmpty
+                      ? _EmptyGroupsState(isTeacher: widget.isTeacher)
+                      : FutureBuilder<List<Map<String, String>>>(
+                          future: Get.find<CourseController>()
+                              .getUsersByIds(widget.course.studentIds),
+                          builder: (context, snapshot) {
+                            final Map<String, Map<String, String>> userMap = {
+                              for (final u in (snapshot.data ?? const []))
+                                if (u['id'] != null) u['id']!: u
+                            };
+
+                            return _GroupsList(
+                              groups: groups,
+                              isTeacher: widget.isTeacher,
+                              onEditGroup: (group) => _showEditGroupDialog(current, group),
+                              onDeleteGroup: (group) => _showDeleteGroupConfirmation(current, group),
+                              onAddStudent: (group) => _onAddStudent(current, group),
+                              onRemoveStudent: (group, studentId) => _onRemoveStudent(current, group, studentId),
+                              userMap: userMap,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          }),
+        );
+      },
     );
   }
 
   void _showEditCategoryDialog() {
-    // Implementar edición de categoría
     Get.snackbar(
       'Editar Categoría',
       'Funcionalidad de edición en desarrollo',
@@ -211,34 +247,217 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
     );
   }
 
-  void _showCreateGroupDialog() {
-    // Implementar creación de grupo
-    Get.snackbar(
-      'Crear Grupo',
-      'Funcionalidad de creación de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+  void _showCreateGroupDialog(Category category) {
+    final TextEditingController nameCtrl = TextEditingController(
+      text: '[${category.name}] Grupo ${category.groups.length + 1}',
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Crear Grupo'),
+          content: TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nombre del grupo',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final id = DateTime.now().millisecondsSinceEpoch.toString();
+                final newGroup = Group(id: id, name: nameCtrl.text.trim(), studentIds: const []);
+                await _controller.addGroup(category.id, newGroup);
+                if (mounted) Navigator.of(context).pop();
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  void _showEditGroupDialog(Group group) {
-    // Implementar edición de grupo
-    Get.snackbar(
-      'Editar Grupo',
-      'Funcionalidad de edición de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+  void _showEditGroupDialog(Category category, Group group) {
+    final TextEditingController nameCtrl = TextEditingController(text: group.name);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Grupo'),
+          content: TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nombre del grupo',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final updated = Group(id: group.id, name: nameCtrl.text.trim(), studentIds: group.studentIds, createdAt: group.createdAt);
+                await _controller.updateGroup(category.id, updated);
+                if (mounted) Navigator.of(context).pop();
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  void _showDeleteGroupConfirmation(Group group) {
-    // Implementar eliminación de grupo
-    Get.snackbar(
-      'Eliminar Grupo',
-      'Funcionalidad de eliminación de grupo en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+  void _showDeleteGroupConfirmation(Category category, Group group) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar Grupo'),
+          content: Text('¿Seguro deseas eliminar "${group.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _controller.deleteGroup(category.id, group.id);
+                if (mounted) Navigator.of(context).pop();
+              },
+              style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  Future<void> _onAddStudent(Category category, Group group) async {
+    if (group.studentIds.length >= category.groupSize) {
+      Get.snackbar(
+        'Cupo lleno',
+        'El grupo ya alcanzó el tamaño máximo (${category.groupSize}).',
+        backgroundColor: Theme.of(context).colorScheme.error,
+        colorText: Theme.of(context).colorScheme.onError,
+      );
+      return;
+    }
+
+    // Evitar estudiantes duplicados en la misma categoría
+    final Set<String> assignedInCategory = category.groups
+        .expand((g) => g.studentIds)
+        .toSet();
+    final List<String> available = widget.course.studentIds
+        .where((s) => !assignedInCategory.contains(s))
+        .toList();
+
+    if (available.isEmpty) {
+      Get.snackbar(
+        'Sin estudiantes',
+        'No hay estudiantes disponibles para asignar en esta categoría.',
+        backgroundColor: Theme.of(context).primaryColor,
+        colorText: Theme.of(context).colorScheme.onPrimary,
+      );
+      return;
+    }
+
+    final courseCtrl = Get.find<CourseController>();
+    final users = await courseCtrl.getUsersByIds(available);
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Agregar estudiante al grupo'),
+          content: SizedBox(
+            width: 400,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: users.length,
+              itemBuilder: (_, i) {
+                final u = users[i];
+                final id = u['id'] ?? '';
+                final name = u['name'] ?? id;
+                final email = u['email'] ?? '';
+                return ListTile(
+                  leading: CircleAvatar(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?')),
+                  title: Text(name),
+                  subtitle: Text(email),
+                  onTap: () async {
+                    await _controller.enrollStudentToGroup(category.id, group.id, id);
+                    if (mounted) Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _onRemoveStudent(Category category, Group group, String studentId) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Quitar estudiante'),
+          content: const Text('¿Deseas quitar este estudiante del grupo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _controller.removeStudentFromGroup(category.id, group.id, studentId);
+                if (mounted) Navigator.of(context).pop();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Quitar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _onRegenerateRandom(Category category) async {
+    try {
+      await _controller.regenerateRandomGroups(category.id);
+      Get.snackbar(
+        'Listo',
+        'Grupos regenerados aleatoriamente.',
+        backgroundColor: Theme.of(context).primaryColor,
+        colorText: Theme.of(context).colorScheme.onPrimary,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'No fue posible regenerar: $e',
+        backgroundColor: Theme.of(context).colorScheme.error,
+        colorText: Theme.of(context).colorScheme.onError,
+      );
+    }
   }
 }
 
@@ -377,12 +596,18 @@ class _GroupsList extends StatelessWidget {
   final bool isTeacher;
   final Function(Group) onEditGroup;
   final Function(Group) onDeleteGroup;
+  final Function(Group) onAddStudent;
+  final Function(Group, String) onRemoveStudent;
+  final Map<String, Map<String, String>> userMap;
 
   const _GroupsList({
     required this.groups,
     required this.isTeacher,
     required this.onEditGroup,
     required this.onDeleteGroup,
+    required this.onAddStudent,
+    required this.onRemoveStudent,
+    required this.userMap,
   });
 
   @override
@@ -403,57 +628,88 @@ class _GroupsList extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                  child: Text(
-                    'G${index + 1}',
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                      child: Text(
+                        'G${index + 1}',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${group.studentIds.length} estudiantes',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isTeacher)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.person_add, color: Theme.of(context).primaryColor),
+                            onPressed: () => onAddStudent(group),
+                            tooltip: 'Agregar estudiante',
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+                            onPressed: () => onEditGroup(group),
+                            tooltip: 'Editar grupo',
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                            onPressed: () => onDeleteGroup(group),
+                            tooltip: 'Eliminar grupo',
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${group.studentIds.length} estudiantes',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isTeacher)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Theme.of(context).primaryColor),
-                        onPressed: () => onEditGroup(group),
-                        tooltip: 'Editar grupo',
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
-                        onPressed: () => onDeleteGroup(group),
-                        tooltip: 'Eliminar grupo',
-                      ),
-                    ],
+                const SizedBox(height: 12),
+                if (group.studentIds.isEmpty)
+                  Text(
+                    'Sin estudiantes asignados',
+                    style: TextStyle(color: Colors.black.withOpacity(0.6)),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: group.studentIds.map((sid) {
+                      final display = userMap[sid];
+                      final name = (display != null && (display['name'] ?? '').isNotEmpty)
+                          ? display['name']!
+                          : 'Usuario ${sid.length > 8 ? sid.substring(0, 8) : sid}';
+                      return Chip(
+                        label: Text(name),
+                        onDeleted: isTeacher ? () => onRemoveStudent(group, sid) : null,
+                      );
+                    }).toList(),
                   ),
               ],
             ),
