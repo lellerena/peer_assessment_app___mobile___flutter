@@ -11,6 +11,7 @@ import '../widgets/category_list_tile.dart';
 import '../../../../core/i_local_preferences.dart';
 import 'enrolled_students_page.dart';
 import 'all_participants_page.dart';
+import 'activity_tab.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final String courseId;
@@ -27,7 +28,9 @@ class CourseDetailPage extends StatelessWidget {
       ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         final courses = snapshot.data![0] as List<Course>;
         final rawUser = snapshot.data![1] as String?;
@@ -39,7 +42,9 @@ class CourseDetailPage extends StatelessWidget {
           final userData = json.decode(rawUser);
           final userId = userData['id'] as String?;
           isTeacher = userId != null && course.teacherId == userId;
-          print('DEBUG: rawUser = $rawUser, userId = $userId, course.teacherId = ${course.teacherId}, isTeacher = $isTeacher');
+          print(
+            'DEBUG: rawUser = $rawUser, userId = $userId, course.teacherId = ${course.teacherId}, isTeacher = $isTeacher',
+          );
         }
 
         return Scaffold(
@@ -102,20 +107,36 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Row(
               children: [
-                _ChipButton(text: 'Info', selected: _selected == 0, onTap: () => setState(() => _selected = 0)),
+                _ChipButton(
+                  text: 'Info',
+                  selected: _selected == 0,
+                  onTap: () => setState(() => _selected = 0),
+                ),
                 const SizedBox(width: 8),
-                _ChipButton(text: 'Categorías', selected: _selected == 1, onTap: () => setState(() => _selected = 1)),
+                _ChipButton(
+                  text: 'Categorías',
+                  selected: _selected == 1,
+                  onTap: () => setState(() => _selected = 1),
+                ),
                 const SizedBox(width: 8),
-                _ChipButton(text: 'Activi', selected: _selected == 2, onTap: () => setState(() => _selected = 2)),
+                _ChipButton(
+                  text: 'Actividades',
+                  selected: _selected == 2,
+                  onTap: () => setState(() => _selected = 2),
+                ),
                 const SizedBox(width: 8),
-                _ChipButton(text: 'Participantes', selected: _selected == 3, onTap: () => setState(() => _selected = 3)),
+                _ChipButton(
+                  text: 'Participantes',
+                  selected: _selected == 3,
+                  onTap: () => setState(() => _selected = 3),
+                ),
               ],
             ),
           ),
@@ -135,49 +156,16 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                           course.description?.trim().isNotEmpty == true
                               ? (course.description ?? '')
                               : 'Sin descripción',
-                          style: const TextStyle(color: Colors.black87, height: 1.4),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            height: 1.4,
+                          ),
                         ),
                       ),
-                const SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       // Participantes
                       _ParticipantsCard(course: course, isTeacher: isTeacher),
-                const SizedBox(height: 16),
-                      
-                      // Actividades
-                      _PurpleCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                            const Text(
-                              'Actividades',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'No hay actividades disponibles en este momento.',
-                              style: TextStyle(color: Colors.black87),
-                            ),
-                            const SizedBox(height: 12),
-                    if (isTeacher)
-                      ElevatedButton(
-                                onPressed: () {
-                                  // TODO: Implementar navegación a crear actividad
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context).primaryColor,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                child: const Text('Crear Actividad'),
-                              ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -196,21 +184,26 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                               child: GetBuilder<CategoryController>(
                                 tag: tag,
                                 builder: (_) {
-                                  final controller = Get.find<CategoryController>(tag: tag);
-                                  return Obx(() => Text(
-                                    'Categorías (${controller.categories.length})',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                  final controller =
+                                      Get.find<CategoryController>(tag: tag);
+                                  return Obx(
+                                    () => Text(
+                                      'Categorías (${controller.categories.length})',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ));
+                                  );
                                 },
                               ),
                             ),
                             IconButton(
                               tooltip: 'Recargar',
                               onPressed: () {
-                                final controller = Get.find<CategoryController>(tag: tag);
+                                final controller = Get.find<CategoryController>(
+                                  tag: tag,
+                                );
                                 controller.getCategories();
                               },
                               icon: const Icon(Icons.refresh),
@@ -227,12 +220,16 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                             ctrl.getCategories();
                           },
                           builder: (_) {
-                            final controller = Get.find<CategoryController>(tag: tag);
+                            final controller = Get.find<CategoryController>(
+                              tag: tag,
+                            );
                             return Obx(() {
                               if (controller.isLoading.value) {
-                                return const Center(child: CircularProgressIndicator());
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
                               }
-                              
+
                               if (controller.errorMessage.value.isNotEmpty) {
                                 return Center(
                                   child: Column(
@@ -260,14 +257,15 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                                       ),
                                       const SizedBox(height: 16),
                                       ElevatedButton(
-                                        onPressed: () => controller.getCategories(),
+                                        onPressed: () =>
+                                            controller.getCategories(),
                                         child: const Text('Retry'),
                                       ),
                                     ],
                                   ),
                                 );
                               }
-                              
+
                               if (controller.categories.isEmpty) {
                                 return Center(
                                   child: Column(
@@ -286,14 +284,16 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                                       const SizedBox(height: 8),
                                       Text(
                                         'Add a new category for this course using the button below.',
-                                        style: TextStyle(color: scheme.secondary),
+                                        style: TextStyle(
+                                          color: scheme.secondary,
+                                        ),
                                         textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
                                 );
                               }
-                              
+
                               return ListView.builder(
                                 padding: const EdgeInsets.all(8.0),
                                 itemCount: controller.categories.length,
@@ -301,8 +301,16 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                                   final category = controller.categories[index];
                                   return CategoryListTile(
                                     category: category,
-                                    onEdit: () => _showAddEditDialog(context, controller, category),
-                                    onDelete: () => _showDeleteConfirmation(context, controller, category),
+                                    onEdit: () => _showAddEditDialog(
+                                      context,
+                                      controller,
+                                      category,
+                                    ),
+                                    onDelete: () => _showDeleteConfirmation(
+                                      context,
+                                      controller,
+                                      category,
+                                    ),
                                     isTeacher: isTeacher,
                                     course: course,
                                   );
@@ -314,38 +322,22 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                       ),
                     ],
                   ),
-                  floatingActionButton: isTeacher ? FloatingActionButton(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    onPressed: () {
-                      final controller = Get.find<CategoryController>(tag: tag);
-                      _showAddEditDialog(context, controller);
-                    },
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ) : null,
+                  floatingActionButton: isTeacher
+                      ? FloatingActionButton(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          onPressed: () {
+                            final controller = Get.find<CategoryController>(
+                              tag: tag,
+                            );
+                            _showAddEditDialog(context, controller);
+                          },
+                          child: const Icon(Icons.add, color: Colors.white),
+                        )
+                      : null,
                 ),
 
-                // Actividades (placeholder visual)
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Actividades', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                      const SizedBox(height: 12),
-                      _PurpleCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Actividad 1', style: TextStyle(fontWeight: FontWeight.w600)),
-                            SizedBox(height: 8),
-                            Text('Descripción de la actividad. Texto de ejemplo para ocupar espacio.',
-                                style: TextStyle(color: Colors.black87, height: 1.4)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Actividades
+                ActivityTab(course: course, isTeacher: isTeacher),
 
                 // Participantes (todos los usuarios inscritos)
                 _AllParticipantsTab(course: course, isTeacher: isTeacher),
@@ -464,10 +456,7 @@ class _PurpleCard extends StatelessWidget {
           width: 2,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -475,11 +464,8 @@ class _PurpleCard extends StatelessWidget {
 class _ParticipantsCard extends StatefulWidget {
   final Course course;
   final bool isTeacher;
-  
-  const _ParticipantsCard({
-    required this.course,
-    required this.isTeacher,
-  });
+
+  const _ParticipantsCard({required this.course, required this.isTeacher});
 
   @override
   State<_ParticipantsCard> createState() => _ParticipantsCardState();
@@ -498,9 +484,10 @@ class _ParticipantsCardState extends State<_ParticipantsCard> {
   Future<void> _loadParticipants() async {
     try {
       final controller = Get.find<CourseController>();
-      final participants = await controller.getUsersByIds(widget.course.studentIds)
+      final participants = await controller
+          .getUsersByIds(widget.course.studentIds)
           .timeout(const Duration(seconds: 10));
-      
+
       if (mounted) {
         setState(() {
           _participants = participants;
@@ -532,69 +519,77 @@ class _ParticipantsCardState extends State<_ParticipantsCard> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            )
+            const Center(child: CircularProgressIndicator())
           else if (_participants.isEmpty)
             Text(
-              widget.course.studentIds.isEmpty 
+              widget.course.studentIds.isEmpty
                   ? 'Aún no hay estudiantes inscritos.'
                   : 'Error al cargar participantes.',
               style: const TextStyle(color: Colors.black54),
             )
           else ...[
             // Mostrar máximo 4 participantes
-            ..._participants.take(4).map((userData) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                        child: Text(
-                          userData['name']?.isNotEmpty == true ? userData['name']![0].toUpperCase() : '?',
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.bold,
+            ..._participants
+                .take(4)
+                .map(
+                  (userData) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.2),
+                          child: Text(
+                            userData['name']?.isNotEmpty == true
+                                ? userData['name']![0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userData['name'] ?? 'Usuario',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userData['name'] ?? 'Usuario',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                            Text(
-                              userData['email'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
+                              Text(
+                                userData['email'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                )),
-            
+                ),
+
             // Si hay más de 4 participantes, mostrar botón para ver todos
             if (_participants.length > 4) ...[
               const SizedBox(height: 8),
               Center(
                 child: TextButton(
-                  onPressed: () => Get.to(() => AllParticipantsPage(
-                    course: widget.course,
-                    participants: _participants,
-                  )),
+                  onPressed: () => Get.to(
+                    () => AllParticipantsPage(
+                      course: widget.course,
+                      participants: _participants,
+                    ),
+                  ),
                   child: Text(
                     'Ver todos los participantes (${_participants.length})',
                     style: TextStyle(
@@ -605,16 +600,19 @@ class _ParticipantsCardState extends State<_ParticipantsCard> {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 12),
             if (widget.isTeacher)
               ElevatedButton(
-                onPressed: () => Get.to(() => EnrolledStudentsPage(course: widget.course)),
+                onPressed: () =>
+                    Get.to(() => EnrolledStudentsPage(course: widget.course)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text('Ver estudiantes'),
               ),
@@ -628,11 +626,8 @@ class _ParticipantsCardState extends State<_ParticipantsCard> {
 class _AllParticipantsTab extends StatefulWidget {
   final Course course;
   final bool isTeacher;
-  
-  const _AllParticipantsTab({
-    required this.course,
-    required this.isTeacher,
-  });
+
+  const _AllParticipantsTab({required this.course, required this.isTeacher});
 
   @override
   State<_AllParticipantsTab> createState() => _AllParticipantsTabState();
@@ -651,9 +646,10 @@ class _AllParticipantsTabState extends State<_AllParticipantsTab> {
   Future<void> _loadParticipants() async {
     try {
       final controller = Get.find<CourseController>();
-      final participants = await controller.getUsersByIds(widget.course.studentIds)
+      final participants = await controller
+          .getUsersByIds(widget.course.studentIds)
           .timeout(const Duration(seconds: 10));
-      
+
       if (mounted) {
         setState(() {
           _participants = participants;
@@ -690,23 +686,24 @@ class _AllParticipantsTabState extends State<_AllParticipantsTab> {
               ),
               if (widget.isTeacher)
                 ElevatedButton(
-                  onPressed: () => Get.to(() => EnrolledStudentsPage(course: widget.course)),
+                  onPressed: () =>
+                      Get.to(() => EnrolledStudentsPage(course: widget.course)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: const Text('Gestionar'),
                 ),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            )
+            const Center(child: CircularProgressIndicator())
           else if (_participants.isEmpty)
             _PurpleCard(
               child: const Text(
@@ -715,71 +712,80 @@ class _AllParticipantsTabState extends State<_AllParticipantsTab> {
               ),
             )
           else
-            ..._participants.map((userData) => Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: _PurpleCard(
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                          child: Text(
-                            userData['name']?.isNotEmpty == true ? userData['name']![0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
+            ..._participants.map(
+              (userData) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: _PurpleCard(
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).primaryColor.withOpacity(0.2),
+                        child: Text(
+                          userData['name']?.isNotEmpty == true
+                              ? userData['name']![0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userData['name'] ?? 'Usuario',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                userData['name'] ?? 'Usuario',
-                                style: const TextStyle(
+                            const SizedBox(height: 4),
+                            Text(
+                              userData['email'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'ESTUDIANTE',
+                                style: TextStyle(
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  color: Colors.black,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                userData['email'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'ESTUDIANTE',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
-
-
