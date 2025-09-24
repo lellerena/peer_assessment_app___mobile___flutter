@@ -187,7 +187,11 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text('Crear Grupo'),
+                      child: Text(
+                        widget.category.groupingMethod == GroupingMethod.selfAssigned
+                            ? 'Configurar Grupos'
+                            : 'Crear Grupo',
+                      ),
                     ),
                   ],
                 ),
@@ -201,7 +205,10 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _groups.isEmpty
-                    ? _EmptyGroupsState(isTeacher: widget.isTeacher)
+                    ? _EmptyGroupsState(
+                        isTeacher: widget.isTeacher,
+                        groupingMethod: widget.category.groupingMethod,
+                      )
                     : _GroupsList(
                         groups: _groups,
                         isTeacher: widget.isTeacher,
@@ -533,8 +540,27 @@ class _CategoryInfoCard extends StatelessWidget {
 
 class _EmptyGroupsState extends StatelessWidget {
   final bool isTeacher;
+  final GroupingMethod groupingMethod;
 
-  const _EmptyGroupsState({required this.isTeacher});
+  const _EmptyGroupsState({
+    required this.isTeacher,
+    required this.groupingMethod,
+  });
+
+  String _getEmptyStateMessage() {
+    if (!isTeacher) {
+      return 'Los grupos aparecerán aquí cuando el profesor los cree';
+    }
+    
+    switch (groupingMethod) {
+      case GroupingMethod.random:
+        return 'Crea grupos para organizar a los estudiantes.\n\nUsa "Generar" para crear grupos aleatorios o "Crear Grupo" para grupos específicos.';
+      case GroupingMethod.selfAssigned:
+        return 'Configura grupos para que los estudiantes puedan auto-asignarse.\n\nUsa "Configurar Grupos" para crear grupos disponibles.';
+      case GroupingMethod.manual:
+        return 'Crea grupos y asigna estudiantes manualmente.\n\nUsa "Crear Grupo" para empezar a organizar.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -558,9 +584,7 @@ class _EmptyGroupsState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            isTeacher 
-                ? 'Crea grupos para organizar a los estudiantes.\n\nUsa "Generar" para grupos aleatorios o "Crear Grupo" para grupos manuales.'
-                : 'Los grupos aparecerán aquí cuando el profesor los cree',
+            _getEmptyStateMessage(),
             style: const TextStyle(
               fontSize: 14,
               color: Colors.black54,
