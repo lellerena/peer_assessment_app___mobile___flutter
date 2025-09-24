@@ -1,4 +1,3 @@
-import 'package:get/route_manager.dart';
 import 'package:loggy/loggy.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -217,6 +216,28 @@ class LocalCourseSource implements ICourseSource {
     } catch (e) {
       logError("Error getting courses by user ID: $e");
       return Future.error('Error getting courses by user ID: $e');
+    }
+  }
+
+  @override
+  Future<List<Course>> getCoursesByTeacherId(String teacherId) async {
+    logInfo("Getting courses for teacherId $teacherId from local source");
+
+    try {
+      final allCourses = await getCourses();
+      final teacherCourses = allCourses
+          .where((course) => course.teacherId == teacherId)
+          .toList();
+
+      logInfo(
+        "Fetched ${teacherCourses.length} courses for teacherId from local source",
+      );
+
+      // Return a copy to prevent direct modification of the source list
+      return Future.value(List<Course>.from(teacherCourses));
+    } catch (e) {
+      logError("Error getting courses by teacher ID: $e");
+      return Future.error('Error getting courses by teacher ID: $e');
     }
   }
 

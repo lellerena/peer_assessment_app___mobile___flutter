@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../domain/models/category.dart';
+import '../../domain/models/course.dart';
+import '../pages/category_detail_page.dart';
 
 class CategoryListTile extends StatelessWidget {
   final Category category;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isTeacher;
+  final Course? course;
 
   const CategoryListTile({
     super.key,
     required this.category,
     required this.onEdit,
     required this.onDelete,
+    this.isTeacher = true,
+    this.course,
   });
 
   @override
@@ -20,6 +27,15 @@ class CategoryListTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       elevation: 2.0,
       child: ListTile(
+        onTap: () {
+          if (course != null) {
+            Get.to(() => CategoryDetailPage(
+              category: category,
+              course: course!,
+              isTeacher: isTeacher,
+            ));
+          }
+        },
         leading: CircleAvatar(
           backgroundColor: colorScheme.primaryContainer,
           child: Text(
@@ -37,7 +53,7 @@ class CategoryListTile extends StatelessWidget {
         subtitle: Text(
           'Grouping: ${category.groupingMethod.name} / Size: ${category.groupSize}',
         ),
-        trailing: Row(
+        trailing: isTeacher ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
@@ -51,7 +67,7 @@ class CategoryListTile extends StatelessWidget {
               tooltip: 'Delete',
             ),
           ],
-        ),
+        ) : null,
       ),
     );
   }

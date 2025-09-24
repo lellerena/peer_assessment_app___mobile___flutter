@@ -122,6 +122,8 @@ class CategoryPage extends StatelessWidget {
               onEdit: () => _showAddEditDialog(context, controller, category),
               onDelete: () =>
                   _showDeleteConfirmation(context, controller, category),
+              isTeacher: true, // En la página de categorías siempre es profesor
+              course: null, // No hay curso específico en la página de categorías
             );
           },
         );
