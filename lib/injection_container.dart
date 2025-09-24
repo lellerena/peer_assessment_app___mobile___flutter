@@ -16,10 +16,13 @@ import 'features/auth/ui/controller/auth_controller.dart';
 
 import 'features/courses/data/repositories/course_repository.dart';
 import 'features/courses/data/repositories/category_repository.dart';
+import 'features/courses/data/repositories/activity_repository.dart';
 import 'features/courses/domain/repositories/i_course_repository.dart';
 import 'features/courses/domain/repositories/i_category_repository.dart';
+import 'features/courses/domain/repositories/i_activity_repository.dart';
 import 'features/courses/domain/usecases/course_usecase.dart';
 import 'features/courses/domain/usecases/category_usecase.dart';
+import 'features/courses/domain/usecases/activity_usecase.dart';
 import 'features/courses/ui/controllers/course_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
@@ -51,6 +54,7 @@ Future<void> init() async {
   // --- Data sources ---
   Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
   Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource());
+  Get.lazyPut<IActivityDataSource>(() => RemoteActivityRobleDataSource());
 
   // --- Repositories ---
   Get.lazyPut<ICourseRepository>(
@@ -61,10 +65,15 @@ Future<void> init() async {
     () => CategoryRepository(Get.find()),
     fenix: true,
   );
+  Get.lazyPut<IActivityRepository>(
+    () => ActivityRepository(Get.find()),
+    fenix: true,
+  );
 
   // --- Use cases ---
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()), fenix: true);
   Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
+  Get.put(ActivityUseCase(Get.find<IActivityRepository>()));
 
   // --- Controllers ---
   Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()), fenix: true);
