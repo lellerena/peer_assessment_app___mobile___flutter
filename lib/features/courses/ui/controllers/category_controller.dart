@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../domain/models/index.dart' as CategoryModel;
 
 import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/course_usecase.dart';
 
 class CategoryController extends GetxController {
   final RxList<CategoryModel.Category> _categories =
@@ -48,12 +49,49 @@ class CategoryController extends GetxController {
       isLoading.value = true;
 
       // Create category with the current courseId
+      final List<CategoryModel.Group> initialGroups = <CategoryModel.Group>[];
+
+      // Generación automática de grupos según método
+      // - selfAssigned: crear al menos un grupo vacío como contenedor, con nombre identificable
+      // - random/manual: no crear grupos automáticamente aquí (random requiere distribución de estudiantes)
+      if (category.groupingMethod == CategoryModel.GroupingMethod.selfAssigned) {
+        initialGroups.add(
+          CategoryModel.Group(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            name: '[${category.name}] Grupo 1',
+            studentIds: const [],
+          ),
+        );
+      } else if (category.groupingMethod == CategoryModel.GroupingMethod.random) {
+        // Distribuir estudiantes inscritos en el curso en grupos de tamaño groupSize
+        final courseUseCase = Get.find<CourseUseCase>();
+        final List<String> enrolled = await courseUseCase.getEnrolledUserIds(courseId);
+        final List<String> shuffled = List<String>.from(enrolled)..shuffle();
+
+        final int groupSize = category.groupSize > 0 ? category.groupSize : 2;
+        final int groupCount = (shuffled.length / groupSize).ceil();
+
+        for (int i = 0; i < groupCount; i++) {
+          final start = i * groupSize;
+          final end = (start + groupSize) > shuffled.length ? shuffled.length : (start + groupSize);
+          final members = shuffled.sublist(start, end);
+          initialGroups.add(
+            CategoryModel.Group(
+              id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
+              name: '[${category.name}] Grupo ${i + 1}',
+              studentIds: members,
+            ),
+          );
+        }
+      }
+
       final categoryWithCourseId = CategoryModel.Category(
         id: category.id,
         name: category.name,
         groupingMethod: category.groupingMethod,
         groupSize: category.groupSize,
         courseId: courseId,
+        groups: initialGroups,
       );
 
       await categoryUseCase.addCategory(categoryWithCourseId);
@@ -172,6 +210,57 @@ class CategoryController extends GetxController {
       await getCategories();
     } catch (e) {
       errorMessage.value = "Error removing student: $e";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Regenerar agrupación aleatoria: redistribuye a TODOS los inscritos en grupos nuevos
+  Future<void> regenerateRandomGroups(String categoryId) async {
+    try {
+      isLoading.value = true;
+      // Obtener categoría actual
+      final current = categories.firstWhere(
+        (c) => c.id == categoryId,
+        orElse: () => throw Exception('Category not found'),
+      );
+      if (current.groupingMethod != CategoryModel.GroupingMethod.random) {
+        throw Exception('Solo aplica para categorías de tipo random');
+      }
+
+      final courseUseCase = Get.find<CourseUseCase>();
+      final List<String> enrolled = await courseUseCase.getEnrolledUserIds(courseId);
+      final List<String> shuffled = List<String>.from(enrolled)..shuffle();
+      final int groupSize = current.groupSize > 0 ? current.groupSize : 2;
+      final int groupCount = (shuffled.length / groupSize).ceil();
+
+      final List<CategoryModel.Group> newGroups = [];
+      for (int i = 0; i < groupCount; i++) {
+        final start = i * groupSize;
+        final end = (start + groupSize) > shuffled.length ? shuffled.length : (start + groupSize);
+        final members = shuffled.sublist(start, end);
+        newGroups.add(
+          CategoryModel.Group(
+            id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
+            name: '[${current.name}] Grupo ${i + 1}',
+            studentIds: members,
+          ),
+        );
+      }
+
+      final updated = CategoryModel.Category(
+        id: current.id,
+        name: current.name,
+        groupingMethod: current.groupingMethod,
+        groupSize: current.groupSize,
+        courseId: current.courseId,
+        groups: newGroups,
+      );
+
+      await categoryUseCase.updateCategory(updated);
+      await getCategories();
+    } catch (e) {
+      errorMessage.value = 'Error regenerating random groups: $e';
     } finally {
       isLoading.value = false;
     }
