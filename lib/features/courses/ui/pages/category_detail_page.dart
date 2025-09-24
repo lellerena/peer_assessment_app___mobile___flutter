@@ -6,6 +6,7 @@ import '../../domain/usecases/category_usecase.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
 import '../controllers/course_controller.dart';
+import '../widgets/add_edit_category_dialog.dart';
 
 class CategoryDetailPage extends StatelessWidget {
   final Category category;
@@ -210,11 +211,35 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
   }
 
   void _showEditCategoryDialog() {
-    Get.snackbar(
-      'Editar Categoría',
-      'Funcionalidad de edición en desarrollo',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
+    final current = _controller.categories.firstWhere(
+      (c) => c.id == widget.category.id,
+      orElse: () => widget.category,
+    );
+
+    showDialog(
+      context: context,
+      builder: (_) => AddEditCategoryDialog(
+        category: current,
+        onSave: (edited) async {
+          final updated = Category(
+            id: current.id,
+            name: edited.name,
+            groupingMethod: edited.groupingMethod,
+            groupSize: edited.groupSize,
+            courseId: current.courseId,
+            groups: current.groups, // preservar grupos existentes
+          );
+          await _controller.updateCategory(updated);
+          if (mounted) {
+            Get.snackbar(
+              'Categoría actualizada',
+              'Los cambios fueron guardados correctamente',
+              backgroundColor: Theme.of(context).primaryColor,
+              colorText: Colors.white,
+            );
+          }
+        },
+      ),
     );
   }
 
