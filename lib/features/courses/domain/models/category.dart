@@ -41,7 +41,7 @@ class Category {
     "groupingMethod": groupingMethod.name,
     "groupSize": groupSize,
     "courseId": courseId,
-    "groups": {"data": groups.map((g) => g.toJson()).toList()},
+    "groups": groups.map((g) => g.toJson()).toList(),
   };
 
   Map<String, dynamic> toJsonNoId() => {
@@ -49,7 +49,7 @@ class Category {
     "groupingMethod": groupingMethod.name,
     "groupSize": groupSize,
     "courseId": courseId,
-    "groups": {"data": groups.map((g) => g.toJson()).toList()},
+    "groups": groups.map((g) => g.toJson()).toList(),
   };
 
   @override

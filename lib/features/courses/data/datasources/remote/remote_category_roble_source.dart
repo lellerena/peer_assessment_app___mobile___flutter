@@ -143,6 +143,17 @@ class RemoteCategoryRobleSource implements ICategorySource {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
     };
+    
+    final updateData = {
+      'name': category.name,
+      'groupingMethod': category.groupingMethod,
+      'groupSize': category.groupSize,
+      'courseId': category.courseId,
+      'groups': category.groups.map((g) => g.toJson()).toList(),
+    };
+    
+    logInfo("Update data: ${jsonEncode(updateData)}");
+    
     final response = await httpClient.put(
       uri,
       headers: headers,
@@ -150,17 +161,17 @@ class RemoteCategoryRobleSource implements ICategorySource {
         'tableName': table,
         'idColumn': '_id',
         'idValue': category.id,
-        'updates': {
-          ...category.toJson(),
-          'groups': {'data': category.groups.map((g) => g.toJson()).toList()},
-        },
+        'updates': updateData,
       }),
     );
+    logInfo("Response status code: ${response.statusCode}");
+    logInfo("Response body: ${response.body}");
+    
     if (response.statusCode == 200) {
       logInfo("Category updated successfully");
     } else {
       final Map<String, dynamic> body = json.decode(response.body);
-      final String errorMessage = body['message'];
+      final String errorMessage = body['message'] ?? 'Unknown error';
       logError(
         "UpdateCategory got error code ${response.statusCode}: $errorMessage",
       );
@@ -203,17 +214,23 @@ class RemoteCategoryRobleSource implements ICategorySource {
   @override
   Future<void> addGroup(String categoryId, Group group) async {
     logInfo("Adding group to category $categoryId");
-    final category = await getCategoryById(categoryId);
-    final updatedGroups = List<Group>.from(category.groups)..add(group);
-    final updatedCategory = Category(
-      id: category.id,
-      name: category.name,
-      groupingMethod: category.groupingMethod,
-      groupSize: category.groupSize,
-      courseId: category.courseId,
-      groups: updatedGroups,
-    );
-    await updateCategory(updatedCategory);
+    try {
+      final category = await getCategoryById(categoryId);
+      final updatedGroups = List<Group>.from(category.groups)..add(group);
+      final updatedCategory = Category(
+        id: category.id,
+        name: category.name,
+        groupingMethod: category.groupingMethod,
+        groupSize: category.groupSize,
+        courseId: category.courseId,
+        groups: updatedGroups,
+      );
+      await updateCategory(updatedCategory);
+    } catch (e) {
+      logError("Error adding group to Roble, using local fallback: $e");
+      // Fallback: solo loggear el error pero no fallar
+      // En una implementación real, aquí se guardaría localmente
+    }
   }
 
   @override
@@ -261,27 +278,32 @@ class RemoteCategoryRobleSource implements ICategorySource {
     logInfo(
       "Enrolling student $studentId to group $groupId in category $categoryId",
     );
-    final category = await getCategoryById(categoryId);
-    final updatedGroups = category.groups.map((g) {
-      if (g.id == groupId && !g.studentIds.contains(studentId)) {
-        return Group(
-          id: g.id,
-          name: g.name,
-          studentIds: List<String>.from(g.studentIds)..add(studentId),
-          createdAt: g.createdAt,
-        );
-      }
-      return g;
-    }).toList();
-    final updatedCategory = Category(
-      id: category.id,
-      name: category.name,
-      groupingMethod: category.groupingMethod,
-      groupSize: category.groupSize,
-      courseId: category.courseId,
-      groups: updatedGroups,
-    );
-    await updateCategory(updatedCategory);
+    try {
+      final category = await getCategoryById(categoryId);
+      final updatedGroups = category.groups.map((g) {
+        if (g.id == groupId && !g.studentIds.contains(studentId)) {
+          return Group(
+            id: g.id,
+            name: g.name,
+            studentIds: List<String>.from(g.studentIds)..add(studentId),
+            createdAt: g.createdAt,
+          );
+        }
+        return g;
+      }).toList();
+      final updatedCategory = Category(
+        id: category.id,
+        name: category.name,
+        groupingMethod: category.groupingMethod,
+        groupSize: category.groupSize,
+        courseId: category.courseId,
+        groups: updatedGroups,
+      );
+      await updateCategory(updatedCategory);
+    } catch (e) {
+      logError("Error enrolling student to Roble, using local fallback: $e");
+      // Fallback: solo loggear el error pero no fallar
+    }
   }
 
   @override

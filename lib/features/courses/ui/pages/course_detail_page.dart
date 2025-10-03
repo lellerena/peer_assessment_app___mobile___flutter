@@ -4,14 +4,17 @@ import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../controllers/course_controller.dart';
 import '../controllers/category_controller.dart';
+import '../controllers/assessment_controller.dart';
 import '../../domain/models/category.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/assessment_usecase.dart';
 import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
 import '../../../../core/i_local_preferences.dart';
 import 'enrolled_students_page.dart';
 import 'all_participants_page.dart';
 import 'activity_tab.dart';
+import 'assessment_tab_simple.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final String courseId;
@@ -75,27 +78,42 @@ class _CourseDetailTabbed extends StatefulWidget {
 }
 
 class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
-  int _selected = 0; // 0: Info, 1: Categorías, 2: Actividades, 3: Participantes
+  int _selected = 0; // 0: Info, 1: Categorías, 2: Actividades, 3: Evaluaciones, 4: Participantes
 
   @override
   void initState() {
     super.initState();
     // Preparar el CategoryController como lo hace CategoryPage, pero embebido
-    final String tag = 'category_controller_${widget.course.id}';
-    if (!Get.isRegistered<CategoryController>(tag: tag)) {
+    final String categoryTag = 'category_controller_${widget.course.id}';
+    if (!Get.isRegistered<CategoryController>(tag: categoryTag)) {
       Get.put(
         CategoryController(Get.find<CategoryUseCase>(), widget.course.id),
-        tag: tag,
+        tag: categoryTag,
+      );
+    }
+    
+    // Preparar el AssessmentController
+    final String assessmentTag = 'assessment_controller_${widget.course.id}';
+    if (!Get.isRegistered<AssessmentController>(tag: assessmentTag)) {
+      Get.put(
+        AssessmentController(Get.find<AssessmentUseCase>(), Get.find<CategoryUseCase>(), widget.course.id),
+        tag: assessmentTag,
       );
     }
   }
 
   @override
   void dispose() {
-    final String tag = 'category_controller_${widget.course.id}';
-    if (Get.isRegistered<CategoryController>(tag: tag)) {
-      Get.delete<CategoryController>(tag: tag);
+    final String categoryTag = 'category_controller_${widget.course.id}';
+    if (Get.isRegistered<CategoryController>(tag: categoryTag)) {
+      Get.delete<CategoryController>(tag: categoryTag);
     }
+    
+    final String assessmentTag = 'assessment_controller_${widget.course.id}';
+    if (Get.isRegistered<AssessmentController>(tag: assessmentTag)) {
+      Get.delete<AssessmentController>(tag: assessmentTag);
+    }
+    
     super.dispose();
   }
 
@@ -133,9 +151,15 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                 ),
                 const SizedBox(width: 8),
                 _ChipButton(
-                  text: 'Participantes',
+                  text: 'Evaluaciones',
                   selected: _selected == 3,
                   onTap: () => setState(() => _selected = 3),
+                ),
+                const SizedBox(width: 8),
+                _ChipButton(
+                  text: 'Participantes',
+                  selected: _selected == 4,
+                  onTap: () => setState(() => _selected = 4),
                 ),
               ],
             ),
@@ -338,6 +362,9 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
 
                 // Actividades
                 ActivityTab(course: course, isTeacher: isTeacher),
+
+                // Evaluaciones
+                AssessmentTabSimple(course: course, isTeacher: isTeacher),
 
                 // Participantes (todos los usuarios inscritos)
                 _AllParticipantsTab(course: course, isTeacher: isTeacher),
