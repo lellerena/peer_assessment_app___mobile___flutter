@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:convert';
 import '../../domain/models/course.dart';
 import '../../domain/models/activity.dart';
 import '../../domain/models/category.dart';
+import '../../domain/models/submission.dart';
 import '../controllers/activity_controller.dart';
 import '../controllers/category_controller.dart';
+import '../controllers/submission_controller.dart';
 import '../../domain/usecases/activity_usecase.dart';
+import '../../domain/usecases/submission_usecase.dart';
 import '../widgets/activity_list_tile.dart';
 import '../widgets/add_edit_activity_dialog.dart';
+import '../pages/student_submission_page.dart';
+import '../pages/teacher_submissions_page.dart';
+import '../../../../core/i_local_preferences.dart';
 
 class ActivityTab extends StatefulWidget {
   final Course course;
@@ -31,6 +38,11 @@ class _ActivityTabState extends State<ActivityTab> {
         ActivityController(Get.find<ActivityUseCase>(), widget.course.id),
         tag: activityTag,
       );
+    }
+
+    // Register SubmissionController if not registered
+    if (!Get.isRegistered<SubmissionController>()) {
+      Get.put(SubmissionController(Get.find<SubmissionUseCase>()));
     }
   }
 
@@ -105,6 +117,35 @@ class _ActivityTabState extends State<ActivityTab> {
         );
       },
     );
+  }
+
+  // Método para navegar a la página de entrega para estudiantes
+  void _navigateToSubmissionPage(Activity activity, Category? category) async {
+    final ILocalPreferences prefs = Get.find();
+    final rawUser = await prefs.retrieveData<String>('user');
+    if (rawUser != null) {
+      final userData = json.decode(rawUser);
+      final userId = userData['id'] as String?;
+
+      if (userId != null) {
+        Get.to(
+          () => StudentSubmissionPage(
+            activity: activity,
+            studentId: userId,
+            group: category?.groups.isEmpty ?? true
+                ? null
+                : category?.groups.firstWhereOrNull(
+                    (group) => group.studentIds.contains(userId),
+                  ),
+          ),
+        );
+      }
+    }
+  }
+
+  // Método para navegar a la página de visualización de entregas para profesores
+  void _navigateToTeacherSubmissionsPage(Activity activity) {
+    Get.to(() => TeacherSubmissionsPage(activity: activity));
   }
 
   @override
@@ -266,6 +307,13 @@ class _ActivityTabState extends State<ActivityTab> {
                                 controller,
                                 activity,
                               )
+                            : null,
+                        onSubmit: !widget.isTeacher
+                            ? () =>
+                                  _navigateToSubmissionPage(activity, category)
+                            : null,
+                        onViewSubmissions: widget.isTeacher
+                            ? () => _navigateToTeacherSubmissionsPage(activity)
                             : null,
                         isTeacher: widget.isTeacher,
                       );

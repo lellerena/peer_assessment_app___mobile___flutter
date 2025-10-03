@@ -17,13 +17,17 @@ import 'features/auth/ui/controller/auth_controller.dart';
 import 'features/courses/data/repositories/course_repository.dart';
 import 'features/courses/data/repositories/category_repository.dart';
 import 'features/courses/data/repositories/activity_repository.dart';
+import 'features/courses/data/repositories/submission_repository.dart';
 import 'features/courses/domain/repositories/i_course_repository.dart';
 import 'features/courses/domain/repositories/i_category_repository.dart';
 import 'features/courses/domain/repositories/i_activity_repository.dart';
+import 'features/courses/domain/repositories/i_submission_repository.dart';
 import 'features/courses/domain/usecases/course_usecase.dart';
 import 'features/courses/domain/usecases/category_usecase.dart';
 import 'features/courses/domain/usecases/activity_usecase.dart';
+import 'features/courses/domain/usecases/submission_usecase.dart';
 import 'features/courses/ui/controllers/course_controller.dart';
+import 'features/courses/ui/controllers/submission_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
 import 'features/courses/data/datasources/datasources.dart';
@@ -55,6 +59,7 @@ Future<void> init() async {
   Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
   Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource());
   Get.lazyPut<IActivityDataSource>(() => RemoteActivityRobleDataSource());
+  Get.lazyPut<ISubmissionDataSource>(() => RemoteSubmissionRobleDataSource());
 
   // --- Repositories ---
   Get.lazyPut<ICourseRepository>(
@@ -69,12 +74,21 @@ Future<void> init() async {
     () => ActivityRepository(Get.find()),
     fenix: true,
   );
+  Get.lazyPut<ISubmissionRepository>(
+    () => SubmissionRepository(Get.find()),
+    fenix: true,
+  );
 
   // --- Use cases ---
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()), fenix: true);
   Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
   Get.put(ActivityUseCase(Get.find<IActivityRepository>()));
+  Get.put(SubmissionUseCase(Get.find<ISubmissionRepository>()));
 
   // --- Controllers ---
   Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()), fenix: true);
+  Get.lazyPut(
+    () => SubmissionController(Get.find<SubmissionUseCase>()),
+    fenix: true,
+  );
 }
