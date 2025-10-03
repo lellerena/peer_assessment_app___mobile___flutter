@@ -5,6 +5,8 @@ class ActivityListTile extends StatelessWidget {
   final Activity activity;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onSubmit;
+  final VoidCallback? onViewSubmissions;
   final bool isTeacher;
   final String? categoryName;
 
@@ -13,6 +15,8 @@ class ActivityListTile extends StatelessWidget {
     required this.activity,
     this.onEdit,
     this.onDelete,
+    this.onSubmit,
+    this.onViewSubmissions,
     required this.isTeacher,
     this.categoryName,
   }) : super(key: key);
@@ -106,6 +110,42 @@ class ActivityListTile extends StatelessWidget {
                         fontSize: 12,
                       ),
                     ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isTeacher && onViewSubmissions != null)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.assignment_turned_in, size: 18),
+                    label: const Text('Ver Entregas'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      textStyle: const TextStyle(fontSize: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    onPressed: onViewSubmissions,
+                  )
+                else if (!isTeacher && onSubmit != null)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.upload_file, size: 18),
+                    label: const Text('Entregar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      textStyle: const TextStyle(fontSize: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    onPressed: onSubmit,
                   ),
               ],
             ),
