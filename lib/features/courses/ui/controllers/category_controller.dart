@@ -142,9 +142,11 @@ class CategoryController extends GetxController {
   Future<void> addGroup(String categoryId, CategoryModel.Group group) async {
     try {
       isLoading.value = true;
+      errorMessage.value = '';
       await categoryUseCase.addGroup(categoryId, group);
       await getCategories();
     } catch (e) {
+      print("Error adding group: $e");
       errorMessage.value = "Error adding group: $e";
     } finally {
       isLoading.value = false;
