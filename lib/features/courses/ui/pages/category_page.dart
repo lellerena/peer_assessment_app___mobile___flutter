@@ -39,10 +39,7 @@ class CategoryPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Limpiar el controlador al salir
-            if (Get.isRegistered<CategoryController>(tag: controllerTag)) {
-              Get.delete<CategoryController>(tag: controllerTag);
-            }
+            // No eliminar el controlador aquí para evitar problemas con category_detail_page
             Get.back();
           },
         ),

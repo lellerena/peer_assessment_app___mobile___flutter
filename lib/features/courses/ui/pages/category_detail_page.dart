@@ -92,15 +92,16 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
     return GetBuilder<CategoryController>(
       tag: tag,
       builder: (_) {
-        final categories = _controller.categories;
-        final current = categories.firstWhere(
-          (c) => c.id == widget.category.id,
-          orElse: () => widget.category,
-        );
-
         return Padding(
           padding: const EdgeInsets.all(20.0),
           child: Obx(() {
+            final categories = _controller.categories;
+            final current = categories.firstWhere(
+              (c) => c.id == widget.category.id,
+              orElse: () => widget.category,
+            );
+            
+            print("Building CategoryDetailPage for category: ${current.name} with ${current.groups.length} groups");
             if (_controller.isLoading.value) {
               return const Center(child: CircularProgressIndicator());
             }

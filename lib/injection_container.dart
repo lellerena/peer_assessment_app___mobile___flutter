@@ -59,7 +59,7 @@ Future<void> init() async {
 
   // --- Data sources ---
   Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
-  Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource());
+  Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource(), fenix: true);
   Get.lazyPut<IActivityDataSource>(() => RemoteActivityRobleDataSource());
   Get.lazyPut<ISubmissionDataSource>(() => RemoteSubmissionRobleDataSource());
   Get.lazyPut<IAssessmentSource>(() => RemoteAssessmentRobleSource());
@@ -88,7 +88,7 @@ Future<void> init() async {
 
   // --- Use cases ---
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()), fenix: true);
-  Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
+  Get.lazyPut(() => CategoryUseCase(Get.find<ICategoryRepository>()), fenix: true);
   Get.put(ActivityUseCase(Get.find<IActivityRepository>()));
   Get.put(SubmissionUseCase(Get.find<ISubmissionRepository>()));
   Get.put(AssessmentUseCase(Get.find<IAssessmentRepository>()));
