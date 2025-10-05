@@ -3,7 +3,6 @@ import 'package:loggy/loggy.dart';
 
 import 'package:get/get.dart';
 
-import 'core/app_theme.dart';
 import 'core/i_local_preferences.dart';
 import 'core/refresh_client.dart';
 import 'core/local_preferences_secured.dart';
@@ -18,14 +17,17 @@ import 'features/courses/data/repositories/course_repository.dart';
 import 'features/courses/data/repositories/category_repository.dart';
 import 'features/courses/data/repositories/activity_repository.dart';
 import 'features/courses/data/repositories/submission_repository.dart';
+import 'features/courses/data/repositories/assessment_repository.dart';
 import 'features/courses/domain/repositories/i_course_repository.dart';
 import 'features/courses/domain/repositories/i_category_repository.dart';
 import 'features/courses/domain/repositories/i_activity_repository.dart';
 import 'features/courses/domain/repositories/i_submission_repository.dart';
+import 'features/courses/domain/repositories/i_assessment_repository.dart';
 import 'features/courses/domain/usecases/course_usecase.dart';
 import 'features/courses/domain/usecases/category_usecase.dart';
 import 'features/courses/domain/usecases/activity_usecase.dart';
 import 'features/courses/domain/usecases/submission_usecase.dart';
+import 'features/courses/domain/usecases/assessment_usecase.dart';
 import 'features/courses/ui/controllers/course_controller.dart';
 import 'features/courses/ui/controllers/submission_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
@@ -57,9 +59,10 @@ Future<void> init() async {
 
   // --- Data sources ---
   Get.lazyPut<ICourseSource>(() => RemoteCourseRobleSource(), fenix: true);
-  Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource());
+  Get.lazyPut<ICategorySource>(() => RemoteCategoryRobleSource(), fenix: true);
   Get.lazyPut<IActivityDataSource>(() => RemoteActivityRobleDataSource());
   Get.lazyPut<ISubmissionDataSource>(() => RemoteSubmissionRobleDataSource());
+  Get.lazyPut<IAssessmentSource>(() => RemoteAssessmentRobleSource());
 
   // --- Repositories ---
   Get.lazyPut<ICourseRepository>(
@@ -78,12 +81,17 @@ Future<void> init() async {
     () => SubmissionRepository(Get.find()),
     fenix: true,
   );
+  Get.lazyPut<IAssessmentRepository>(
+    () => AssessmentRepository(Get.find()),
+    fenix: true,
+  );
 
   // --- Use cases ---
   Get.lazyPut(() => CourseUseCase(Get.find<ICourseRepository>()), fenix: true);
-  Get.put(CategoryUseCase(Get.find<ICategoryRepository>()));
+  Get.lazyPut(() => CategoryUseCase(Get.find<ICategoryRepository>()), fenix: true);
   Get.put(ActivityUseCase(Get.find<IActivityRepository>()));
   Get.put(SubmissionUseCase(Get.find<ISubmissionRepository>()));
+  Get.put(AssessmentUseCase(Get.find<IAssessmentRepository>()));
 
   // --- Controllers ---
   Get.lazyPut(() => CourseController(Get.find<CourseUseCase>()), fenix: true);
