@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 import '../../domain/models/index.dart' as CategoryModel;
 
 import '../../domain/usecases/category_usecase.dart';
@@ -363,43 +364,31 @@ class CategoryController extends GetxController {
     String studentId,
   ) async {
     try {
-      isLoading.value = true;
       errorMessage.value = '';
-      
       print("Attempting to enroll student: $studentId to group: $groupId in category: $categoryId");
-      
-      // Intentar inscribir desde Roble primero
-      try {
-        await categoryUseCase.enrollStudentToGroup(
-          categoryId,
-          groupId,
-          studentId,
-        );
-        print("Student enrolled successfully to Roble");
-        
-        // Actualizar la lista local inmediatamente
-        await _updateGroupWithStudent(categoryId, groupId, studentId, true);
-        
-        Get.snackbar(
-          'Éxito',
-          'Estudiante inscrito correctamente',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-      } catch (e) {
-        print("Error enrolling student to Roble: $e");
-        
-        // Fallback: inscribir localmente
-        print("Using local fallback for student enrollment");
-        await _updateGroupWithStudent(categoryId, groupId, studentId, true);
-        
-        Get.snackbar(
-          'Éxito',
-          'Estudiante inscrito (almacenado localmente)',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-      }
+
+      // 1) Optimista: actualizar local e interfaz de inmediato
+      await _updateGroupWithStudent(categoryId, groupId, studentId, true);
+
+      // 2) Disparar sincronización remota en segundo plano con timeout
+      //    para evitar que la UI quede bloqueada si el backend no responde
+      unawaited(Future(() async {
+        try {
+          await categoryUseCase
+              .enrollStudentToGroup(categoryId, groupId, studentId)
+              .timeout(const Duration(seconds: 3));
+          print("Remote enroll OK");
+        } catch (e) {
+          print("Remote enroll failed or timed out: $e");
+        }
+      }));
+
+      Get.snackbar(
+        'Éxito',
+        'Estudiante inscrito correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } catch (e) {
       print("Critical error enrolling student: $e");
       errorMessage.value = "Error enrolling student: $e";
@@ -409,8 +398,6 @@ class CategoryController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
-    } finally {
-      isLoading.value = false;
     }
   }
 
@@ -420,43 +407,30 @@ class CategoryController extends GetxController {
     String studentId,
   ) async {
     try {
-      isLoading.value = true;
       errorMessage.value = '';
-      
       print("Attempting to remove student: $studentId from group: $groupId in category: $categoryId");
-      
-      // Intentar remover desde Roble primero
-      try {
-        await categoryUseCase.removeStudentFromGroup(
-          categoryId,
-          groupId,
-          studentId,
-        );
-        print("Student removed successfully from Roble");
-        
-        // Actualizar la lista local inmediatamente
-        await _updateGroupWithStudent(categoryId, groupId, studentId, false);
-        
-        Get.snackbar(
-          'Éxito',
-          'Estudiante removido correctamente',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-      } catch (e) {
-        print("Error removing student from Roble: $e");
-        
-        // Fallback: remover localmente
-        print("Using local fallback for student removal");
-        await _updateGroupWithStudent(categoryId, groupId, studentId, false);
-        
-        Get.snackbar(
-          'Éxito',
-          'Estudiante removido (almacenado localmente)',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-      }
+
+      // 1) Optimista local
+      await _updateGroupWithStudent(categoryId, groupId, studentId, false);
+
+      // 2) Remoto en segundo plano con timeout
+      unawaited(Future(() async {
+        try {
+          await categoryUseCase
+              .removeStudentFromGroup(categoryId, groupId, studentId)
+              .timeout(const Duration(seconds: 3));
+          print("Remote remove OK");
+        } catch (e) {
+          print("Remote remove failed or timed out: $e");
+        }
+      }));
+
+      Get.snackbar(
+        'Éxito',
+        'Estudiante removido correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } catch (e) {
       print("Critical error removing student: $e");
       errorMessage.value = "Error removing student: $e";
@@ -466,8 +440,6 @@ class CategoryController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
-    } finally {
-      isLoading.value = false;
     }
   }
 
