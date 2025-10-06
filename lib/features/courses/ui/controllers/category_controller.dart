@@ -681,8 +681,23 @@ class CategoryController extends GetxController {
         groups: newGroups,
       );
 
-      await categoryUseCase.updateCategory(updated);
-      await getCategories();
+      // Actualizar en backend (best-effort)
+      try {
+        await categoryUseCase.updateCategory(updated);
+      } catch (_) {
+        // Ignorar para no bloquear la UX; la fuente de verdad es local
+      }
+
+      // Persistir localmente para que la UI refleje el cambio de inmediato
+      await localDataSource.updateCategory(updated);
+
+      // Actualizar lista en memoria sin volver a cargar todo
+      final index = _categories.indexWhere((c) => c.id == updated.id);
+      if (index != -1) {
+        final updatedCategories = List<CategoryModel.Category>.from(_categories);
+        updatedCategories[index] = updated;
+        _categories.value = updatedCategories;
+      }
     } catch (e) {
       errorMessage.value = 'Error regenerating random groups: $e';
     } finally {
