@@ -15,6 +15,7 @@ import 'enrolled_students_page.dart';
 import 'all_participants_page.dart';
 import 'activity_tab.dart';
 import 'assessment_tab_simple.dart';
+import 'reports_tab.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final String courseId;
@@ -164,6 +165,12 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                     text: 'Participantes',
                     selected: _selected == 4,
                     onTap: () => setState(() => _selected = 4),
+                  ),
+                  const SizedBox(width: 8),
+                  _ChipButton(
+                    text: 'Reportes',
+                    selected: _selected == 5,
+                    onTap: () => setState(() => _selected = 5),
                   ),
                 ],
               ),
@@ -390,6 +397,9 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
 
                 // Participantes (todos los usuarios inscritos)
                 _AllParticipantsTab(course: course, isTeacher: isTeacher),
+
+                // Reportes (solo para profesores)
+                isTeacher ? ReportsTab(course: course) : const Center(child: Text('Acceso restringido')),
               ],
             ),
           ),
