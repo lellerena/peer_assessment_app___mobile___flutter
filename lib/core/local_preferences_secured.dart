@@ -11,7 +11,7 @@ class LocalPreferencesSecured implements ILocalPreferences {
 
   @override
   Future<T?> retrieveData<T>(String key) async {
-    final raw = await _storage.read(key: key);
+    final raw = await  _storage.read(key: key);
     logInfo("Retrieved data for key '$key': $raw");
     if (raw == null) return null;
 

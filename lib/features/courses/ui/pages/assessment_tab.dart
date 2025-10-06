@@ -138,6 +138,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
       ),
       floatingActionButton: widget.isTeacher
           ? FloatingActionButton(
+              heroTag: "assessment_fab_${widget.course.id}",
               backgroundColor: Theme.of(context).primaryColor,
               onPressed: _showAddEditDialog,
               child: const Icon(Icons.add, color: Colors.white),

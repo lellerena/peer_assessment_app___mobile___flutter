@@ -208,7 +208,7 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
                     final enrolledCourses = all.where((course) => 
                       course.studentIds.contains(userId)).toList();
                     final availableCourses = all.where((course) => 
-                      !course.studentIds.contains(userId)).toList();
+                      !course.studentIds.contains(userId) && course.teacherId != userId).toList();
                     
                     switch (_selectedTab) {
                       case 0: // Disponibles
