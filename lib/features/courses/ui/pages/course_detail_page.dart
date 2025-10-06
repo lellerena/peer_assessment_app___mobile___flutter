@@ -128,43 +128,48 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Row(
-              children: [
-                _ChipButton(
-                  text: 'Info',
-                  selected: _selected == 0,
-                  onTap: () => setState(() => _selected = 0),
-                ),
-                const SizedBox(width: 8),
-                _ChipButton(
-                  text: 'Categorías',
-                  selected: _selected == 1,
-                  onTap: () => setState(() => _selected = 1),
-                ),
-                const SizedBox(width: 8),
-                _ChipButton(
-                  text: 'Actividades',
-                  selected: _selected == 2,
-                  onTap: () => setState(() => _selected = 2),
-                ),
-                const SizedBox(width: 8),
-                _ChipButton(
-                  text: 'Evaluaciones',
-                  selected: _selected == 3,
-                  onTap: () => setState(() => _selected = 3),
-                ),
-                const SizedBox(width: 8),
-                _ChipButton(
-                  text: 'Participantes',
-                  selected: _selected == 4,
-                  onTap: () => setState(() => _selected = 4),
-                ),
-              ],
+          // Pestañas con scroll horizontal para móviles
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _ChipButton(
+                    text: 'Info',
+                    selected: _selected == 0,
+                    onTap: () => setState(() => _selected = 0),
+                  ),
+                  const SizedBox(width: 8),
+                  _ChipButton(
+                    text: 'Categorías',
+                    selected: _selected == 1,
+                    onTap: () => setState(() => _selected = 1),
+                  ),
+                  const SizedBox(width: 8),
+                  _ChipButton(
+                    text: 'Actividades',
+                    selected: _selected == 2,
+                    onTap: () => setState(() => _selected = 2),
+                  ),
+                  const SizedBox(width: 8),
+                  _ChipButton(
+                    text: 'Evaluaciones',
+                    selected: _selected == 3,
+                    onTap: () => setState(() => _selected = 3),
+                  ),
+                  const SizedBox(width: 8),
+                  _ChipButton(
+                    text: 'Participantes',
+                    selected: _selected == 4,
+                    onTap: () => setState(() => _selected = 4),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Expanded(
             child: IndexedStack(
               index: _selected,
@@ -175,15 +180,31 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Información del curso
                       _PurpleCard(
-                        child: Text(
-                          course.description?.trim().isNotEmpty == true
-                              ? (course.description ?? '')
-                              : 'Sin descripción',
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            height: 1.4,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Descripción del curso',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              course.description?.trim().isNotEmpty == true
+                                  ? (course.description ?? '')
+                                  : 'Sin descripción disponible',
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                height: 1.4,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -348,6 +369,7 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
                   ),
                   floatingActionButton: isTeacher
                       ? FloatingActionButton(
+                          heroTag: "category_fab_${widget.course.id}",
                           backgroundColor: Theme.of(context).primaryColor,
                           onPressed: () {
                             final controller = Get.find<CategoryController>(
@@ -448,18 +470,29 @@ class _ChipButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        constraints: const BoxConstraints(
+          minWidth: 60,
+          minHeight: 36,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected
               ? Theme.of(context).primaryColor
               : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
+          border: selected
+              ? null
+              : Border.all(color: Colors.grey.shade300, width: 1),
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -476,12 +509,19 @@ class _PurpleCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(context).primaryColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.4),
-          width: 2,
+          color: Theme.of(context).primaryColor.withOpacity(0.2),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );

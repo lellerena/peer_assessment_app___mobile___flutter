@@ -330,6 +330,7 @@ class _ActivityTabState extends State<ActivityTab> {
               tag: categoryTag,
               builder: (categoryController) {
                 return FloatingActionButton(
+                  heroTag: "activity_fab_${widget.course.id}",
                   backgroundColor: Theme.of(context).primaryColor,
                   onPressed: () {
                     final activityController = Get.find<ActivityController>(
