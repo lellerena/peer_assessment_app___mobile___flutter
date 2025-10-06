@@ -33,6 +33,7 @@ import 'features/courses/ui/controllers/submission_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
 import 'features/courses/data/datasources/datasources.dart';
+import 'features/courses/data/datasources/category_local_data_source.dart';
 
 Future<void> init() async {
   Loggy.initLoggy(logPrinter: const PrettyPrinter(showColors: true));
@@ -41,7 +42,7 @@ Future<void> init() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   Get.put<ILocalPreferences>(LocalPreferencesSecured());
 
-  Get.lazyPut<SharedPreferences>(() => sharedPreferences);
+  Get.put<SharedPreferences>(sharedPreferences);
 
   Get.lazyPut<IAuthenticationSource>(
     () => AuthenticationSourceServiceRoble(),
@@ -63,6 +64,9 @@ Future<void> init() async {
   Get.lazyPut<IActivityDataSource>(() => RemoteActivityRobleDataSource());
   Get.lazyPut<ISubmissionDataSource>(() => RemoteSubmissionRobleDataSource());
   Get.lazyPut<IAssessmentSource>(() => RemoteAssessmentRobleSource());
+  
+  // --- Local Data Sources ---
+  Get.lazyPut<CategoryLocalDataSource>(() => CategoryLocalDataSource(Get.find<SharedPreferences>()), fenix: true);
 
   // --- Repositories ---
   Get.lazyPut<ICourseRepository>(
