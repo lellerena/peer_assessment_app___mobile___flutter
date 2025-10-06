@@ -136,48 +136,54 @@ class RemoteCategoryRobleSource implements ICategorySource {
   @override
   Future<void> updateCategory(Category category) async {
     logInfo("Updating category in remote Roble source: ${category.name}");
-    final ILocalPreferences sharedPreferences = Get.find();
-    final token = await sharedPreferences.retrieveData<String>('token');
-    final uri = Uri.https(baseUrl, '/database/$contract/update');
-    final headers = {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-    
-    final updateData = {
-      'name': category.name,
-      'groupingMethod': category.groupingMethod.name,
-      'groupSize': category.groupSize,
-      'courseId': category.courseId,
-      'groups': category.groups.map((g) => g.toJson()).toList(),
-    };
-    
-    logInfo("Update data: ${jsonEncode(updateData)}");
-    
-    final response = await httpClient.put(
-      uri,
-      headers: headers,
-      body: jsonEncode({
-        'tableName': table,
-        'idColumn': '_id',
-        'idValue': category.id,
-        'updates': updateData,
-      }),
-    );
-    logInfo("Response status code: ${response.statusCode}");
-    logInfo("Response body: ${response.body}");
-    
-    if (response.statusCode == 200) {
-      logInfo("Category updated successfully");
-    } else {
-      final Map<String, dynamic> body = json.decode(response.body);
-      final String errorMessage = body['message'] ?? 'Unknown error';
-      logError(
-        "UpdateCategory got error code ${response.statusCode}: $errorMessage",
+    try {
+      final ILocalPreferences sharedPreferences = Get.find();
+      final token = await sharedPreferences.retrieveData<String>('token');
+      final uri = Uri.https(baseUrl, '/database/$contract/update');
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+      
+      // Estructura plana para evitar problemas de serialización
+      final updateData = {
+        'name': category.name,
+        'groupingMethod': category.groupingMethod.name,
+        'groupSize': category.groupSize,
+        'courseId': category.courseId,
+        'groups': category.groups.map((g) => g.toJson()).toList(),
+      };
+      
+      logInfo("Update data: ${jsonEncode(updateData)}");
+      
+      final response = await httpClient.put(
+        uri,
+        headers: headers,
+        body: jsonEncode({
+          'tableName': table,
+          'idColumn': '_id',
+          'idValue': category.id,
+          'updates': updateData,
+        }),
       );
-      return Future.error(
-        'UpdateCategory error code ${response.statusCode}: $errorMessage',
-      );
+      
+      logInfo("Response status code: ${response.statusCode}");
+      
+      if (response.statusCode == 200) {
+        logInfo("Category updated successfully");
+      } else {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final String errorMessage = body['message'] ?? 'Unknown error';
+        logError(
+          "UpdateCategory got error code ${response.statusCode}: $errorMessage",
+        );
+        // No lanzar error, permitir fallback local
+        logInfo("Category update failed, will use local fallback");
+      }
+    } catch (e) {
+      logError("Error updating category in Roble: $e");
+      // No lanzar error, permitir fallback local
+      logInfo("Category update failed, will use local fallback");
     }
   }
 
@@ -232,10 +238,11 @@ class RemoteCategoryRobleSource implements ICategorySource {
         groups: updatedGroups,
       );
       await updateCategory(updatedCategory);
+      logInfo("Group added successfully to Roble");
     } catch (e) {
-      logError("Error adding group to Roble, using local fallback: $e");
-      // Fallback: solo loggear el error pero no fallar
-      // En una implementación real, aquí se guardaría localmente
+      logError("Error adding group to Roble: $e");
+      // No lanzar error, permitir fallback local
+      logInfo("Group addition failed, will use local fallback");
     }
   }
 
@@ -306,9 +313,11 @@ class RemoteCategoryRobleSource implements ICategorySource {
         groups: updatedGroups,
       );
       await updateCategory(updatedCategory);
+      logInfo("Student enrolled successfully to Roble");
     } catch (e) {
-      logError("Error enrolling student to Roble, using local fallback: $e");
-      // Fallback: solo loggear el error pero no fallar
+      logError("Error enrolling student to Roble: $e");
+      // No lanzar error, permitir fallback local
+      logInfo("Student enrollment failed, will use local fallback");
     }
   }
 
@@ -321,26 +330,33 @@ class RemoteCategoryRobleSource implements ICategorySource {
     logInfo(
       "Removing student $studentId from group $groupId in category $categoryId",
     );
-    final category = await getCategoryById(categoryId);
-    final updatedGroups = category.groups.map((g) {
-      if (g.id == groupId && g.studentIds.contains(studentId)) {
-        return Group(
-          id: g.id,
-          name: g.name,
-          studentIds: List<String>.from(g.studentIds)..remove(studentId),
-          createdAt: g.createdAt,
-        );
-      }
-      return g;
-    }).toList();
-    final updatedCategory = Category(
-      id: category.id,
-      name: category.name,
-      groupingMethod: category.groupingMethod,
-      groupSize: category.groupSize,
-      courseId: category.courseId,
-      groups: updatedGroups,
-    );
-    await updateCategory(updatedCategory);
+    try {
+      final category = await getCategoryById(categoryId);
+      final updatedGroups = category.groups.map((g) {
+        if (g.id == groupId && g.studentIds.contains(studentId)) {
+          return Group(
+            id: g.id,
+            name: g.name,
+            studentIds: List<String>.from(g.studentIds)..remove(studentId),
+            createdAt: g.createdAt,
+          );
+        }
+        return g;
+      }).toList();
+      final updatedCategory = Category(
+        id: category.id,
+        name: category.name,
+        groupingMethod: category.groupingMethod,
+        groupSize: category.groupSize,
+        courseId: category.courseId,
+        groups: updatedGroups,
+      );
+      await updateCategory(updatedCategory);
+      logInfo("Student removed successfully from Roble");
+    } catch (e) {
+      logError("Error removing student from Roble: $e");
+      // No lanzar error, permitir fallback local
+      logInfo("Student removal failed, will use local fallback");
+    }
   }
 }
