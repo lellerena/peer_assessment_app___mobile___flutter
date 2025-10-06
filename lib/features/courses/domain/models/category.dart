@@ -20,20 +20,43 @@ class Category {
   final List<Group> groups;
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-    id: json["_id"],
+    id: json["_id"] ?? json["id"] ?? "",
     name: json["name"] ?? "---",
-    groupingMethod: GroupingMethod.values.firstWhere(
-      (e) => e.toString() == 'GroupingMethod.${json["groupingMethod"]}',
-      orElse: () => GroupingMethod.random,
-    ),
+    groupingMethod: _parseGroupingMethod(json["groupingMethod"]),
     groupSize: json["groupSize"] ?? 0,
     courseId: json["courseId"] ?? "---",
-    groups: json["groups"] != null && json["groups"].containsKey("data")
-        ? List<Group>.from(
-            (json["groups"]["data"] as List).map((g) => Group.fromJson(g)),
-          )
-        : [],
+    groups: _parseGroups(json["groups"]),
   );
+
+  static GroupingMethod _parseGroupingMethod(dynamic value) {
+    if (value == null) return GroupingMethod.random;
+    if (value is String) {
+      return GroupingMethod.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => GroupingMethod.random,
+      );
+    }
+    return GroupingMethod.random;
+  }
+
+  static List<Group> _parseGroups(dynamic groupsData) {
+    if (groupsData == null) return [];
+    
+    // Si viene con estructura anidada {"data": [...]}
+    if (groupsData is Map && groupsData.containsKey("data")) {
+      final data = groupsData["data"];
+      if (data is List) {
+        return data.map((g) => Group.fromJson(g)).toList();
+      }
+    }
+    
+    // Si viene como lista directa
+    if (groupsData is List) {
+      return groupsData.map((g) => Group.fromJson(g)).toList();
+    }
+    
+    return [];
+  }
 
   Map<String, dynamic> toJson() => {
     "_id": id,
