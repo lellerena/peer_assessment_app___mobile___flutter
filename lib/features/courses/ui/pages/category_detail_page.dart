@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../domain/models/category.dart';
 import '../../domain/models/group.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../data/datasources/category_local_data_source.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
 import '../controllers/course_controller.dart';
@@ -82,7 +83,7 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
       _controller = Get.find<CategoryController>(tag: tag);
     } else {
       final categoryUseCase = Get.find<CategoryUseCase>();
-      _controller = Get.put(CategoryController(categoryUseCase, widget.course.id), tag: tag);
+      _controller = Get.put(CategoryController(categoryUseCase, Get.find<CategoryLocalDataSource>(), widget.course.id), tag: tag);
     }
   }
 

@@ -8,6 +8,7 @@ import '../controllers/assessment_controller.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/usecases/assessment_usecase.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../data/datasources/category_local_data_source.dart';
 import '../widgets/assessment_list_tile.dart';
 import '../widgets/add_edit_assessment_dialog.dart';
 import '../pages/student_assessment_page.dart';
@@ -61,6 +62,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
     
     _categoryController = CategoryController(
       Get.find<CategoryUseCase>(),
+      Get.find<CategoryLocalDataSource>(),
       widget.course.id,
     );
     Get.put(_categoryController, tag: categoryTag);
