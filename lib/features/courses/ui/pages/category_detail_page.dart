@@ -8,6 +8,7 @@ import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
 import '../controllers/course_controller.dart';
 import '../widgets/add_edit_category_dialog.dart';
+import '../../../../core/i_local_preferences.dart';
 
 class CategoryDetailPage extends StatelessWidget {
   final Category category;
@@ -133,6 +134,8 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
 
             final groups = current.groups;
 
+            // userId se obtiene asincrónicamente más abajo (dentro del FutureBuilder)
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -192,14 +195,46 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
                                 if (u['id'] != null) u['id']!: u
                             };
 
-                            return _GroupsList(
-                              groups: groups,
-                              isTeacher: widget.isTeacher,
-                              onEditGroup: (group) => _showEditGroupDialog(current, group),
-                              onDeleteGroup: (group) => _showDeleteGroupConfirmation(current, group),
-                              onAddStudent: (group) => _onAddStudent(current, group),
-                              onRemoveStudent: (group, studentId) => _onRemoveStudent(current, group, studentId),
-                              userMap: userMap,
+                            return FutureBuilder<String?>(
+                              future: Get.find<ILocalPreferences>().retrieveData<String>('userId'),
+                              builder: (context, uidSnap) {
+                                final String? currentUserId = uidSnap.data;
+                                final bool userAlreadyAssigned = currentUserId == null
+                                    ? false
+                                    : current.groups.any((g) => g.studentIds.contains(currentUserId));
+
+                                return _GroupsList(
+                                  groups: groups,
+                                  isTeacher: widget.isTeacher,
+                                  category: current,
+                                  currentUserId: currentUserId,
+                                  userAlreadyAssigned: userAlreadyAssigned,
+                                  onEditGroup: (group) => _showEditGroupDialog(current, group),
+                                  onDeleteGroup: (group) => _showDeleteGroupConfirmation(current, group),
+                                  onAddStudent: (group) => _onAddStudent(current, group),
+                                  onRemoveStudent: (group, studentId) => _onRemoveStudent(current, group, studentId),
+                                  userMap: userMap,
+                                  onJoinGroup: (group) async {
+                                    if (currentUserId == null) {
+                                      Get.snackbar(
+                                        'Sesión requerida',
+                                        'Inicia sesión para unirte a un grupo.',
+                                        backgroundColor: Theme.of(context).colorScheme.error,
+                                        colorText: Theme.of(context).colorScheme.onError,
+                                      );
+                                      return;
+                                    }
+                                    await _controller.enrollStudentToGroup(current.id, group.id, currentUserId);
+                                    if (!mounted) return;
+                                    Get.snackbar(
+                                      'Listo',
+                                      'Te uniste a ${group.name}.',
+                                      backgroundColor: Theme.of(context).primaryColor,
+                                      colorText: Theme.of(context).colorScheme.onPrimary,
+                                    );
+                                  },
+                                );
+                              },
                             );
                           },
                         ),
@@ -621,20 +656,28 @@ class _EmptyGroupsState extends StatelessWidget {
 class _GroupsList extends StatelessWidget {
   final List<Group> groups;
   final bool isTeacher;
+  final Category category;
+  final String? currentUserId;
+  final bool userAlreadyAssigned;
   final Function(Group) onEditGroup;
   final Function(Group) onDeleteGroup;
   final Function(Group) onAddStudent;
   final Function(Group, String) onRemoveStudent;
   final Map<String, Map<String, String>> userMap;
+  final Future<void> Function(Group) onJoinGroup;
 
   const _GroupsList({
     required this.groups,
     required this.isTeacher,
+    required this.category,
+    required this.currentUserId,
+    required this.userAlreadyAssigned,
     required this.onEditGroup,
     required this.onDeleteGroup,
     required this.onAddStudent,
     required this.onRemoveStudent,
     required this.userMap,
+    required this.onJoinGroup,
   });
 
   @override
@@ -713,6 +756,59 @@ class _GroupsList extends StatelessWidget {
                             onPressed: () => onDeleteGroup(group),
                             tooltip: 'Eliminar grupo',
                           ),
+                        ],
+                      )
+                    else if (category.groupingMethod.name == 'selfAssigned')
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (currentUserId != null) ...[
+                            if (group.studentIds.contains(currentUserId))
+                              TextButton(
+                                onPressed: () async {
+                                  if (currentUserId == null) return;
+                                  await onRemoveStudent(group, currentUserId!);
+                                },
+                                child: Text(
+                                  'Salir',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                                ),
+                              )
+                            else if (!userAlreadyAssigned &&
+                                group.studentIds.length < category.groupSize)
+                              TextButton.icon(
+                                onPressed: () => onJoinGroup(group),
+                                icon: Icon(Icons.person_add,
+                                    color: Theme.of(context).primaryColor),
+                                label: Text('Unirme',
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                    )),
+                              )
+                            else if (userAlreadyAssigned &&
+                                group.studentIds.length < category.groupSize)
+                              TextButton(
+                                onPressed: () async {
+                                  // Cambiarse de grupo: quitar del actual y unirse a este
+                                  try {
+                                    final currentGroup = category.groups.firstWhere(
+                                      (g) => g.studentIds.contains(currentUserId!),
+                                      orElse: () => group,
+                                    );
+                                    if (currentGroup.id != group.id) {
+                                      await onRemoveStudent(currentGroup, currentUserId!);
+                                    }
+                                    await onJoinGroup(group);
+                                  } catch (_) {}
+                                },
+                                child: Text(
+                                  'Cambiarme',
+                                  style: TextStyle(color: Theme.of(context).primaryColor),
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                          ]
                         ],
                       ),
                   ],
