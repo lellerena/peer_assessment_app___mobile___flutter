@@ -79,4 +79,39 @@ class Category {
   String toString() {
     return 'Category{id: $id, name: $name, groupingMethod: $groupingMethod, groupSize: $groupSize, courseId: $courseId, groups: $groups}';
   }
+
+  // Método para parsear el método de agrupación de manera segura
+  static GroupingMethod _parseGroupingMethod(dynamic value) {
+    if (value == null) return GroupingMethod.random;
+    if (value is String) {
+      return GroupingMethod.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => GroupingMethod.random,
+      );
+    }
+    return GroupingMethod.random;
+  }
+
+  // Método para parsear grupos de manera segura
+  static List<Group> _parseGroups(dynamic groupsData) {
+    if (groupsData == null) return [];
+
+    // Si es una lista directa
+    if (groupsData is List) {
+      return groupsData.map((g) => Group.fromJson(g)).toList();
+    }
+    
+    // Si es un Map, verificar si tiene la clave "data"
+    if (groupsData is Map<String, dynamic>) {
+      if (groupsData.containsKey("data")) {
+        final data = groupsData["data"];
+        if (data is List) {
+          return data.map((g) => Group.fromJson(g)).toList();
+        }
+      }
+    }
+
+    // Fallback para tipos inesperados
+    return [];
+  }
 }
