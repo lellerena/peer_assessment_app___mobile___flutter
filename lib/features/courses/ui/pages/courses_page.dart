@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -307,14 +308,132 @@ class _CoursesTabbedState extends State<_CoursesTabbed> {
       return;
     }
 
-    // Simular unirse al curso con el código
-    Get.snackbar(
-      'Código Ingresado',
-      'Código: $code\n\nFuncionalidad en desarrollo - Por ahora es solo para pruebas',
-      backgroundColor: Theme.of(context).primaryColor,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 4),
-    );
+    // Validar formato del código
+    if (!code.startsWith('INV') || code.length != 9) {
+      Get.snackbar(
+        'Error',
+        'Formato de código inválido. Debe ser INV seguido de 6 números',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Buscar el curso que corresponde al código
+    final courseController = Get.find<CourseController>();
+    final allCourses = courseController.allCourses;
+    
+    // Extraer el hash del código
+    final codeNumber = code.substring(3); // Quitar "INV"
+    
+    Course? targetCourse;
+    for (final course in allCourses) {
+      final courseHash = course.id.hashCode.abs();
+      final courseCode = 'INV${courseHash.toString().padLeft(6, '0').substring(0, 6)}';
+      if (courseCode == code) {
+        targetCourse = course;
+        break;
+      }
+    }
+
+    if (targetCourse == null) {
+      Get.snackbar(
+        'Error',
+        'Código de invitación no válido o curso no encontrado',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Obtener información del usuario actual
+    final prefs = Get.find<ILocalPreferences>();
+    prefs.retrieveData<String>('user').then((rawUser) {
+      if (rawUser == null) {
+        Get.snackbar(
+          'Error',
+          'No se pudo obtener información del usuario',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final userData = json.decode(rawUser);
+      final userId = userData['id'] as String?;
+      
+      if (userId == null) {
+        Get.snackbar(
+          'Error',
+          'ID de usuario no encontrado',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Validar que no sea el creador del curso
+      if (targetCourse!.teacherId == userId) {
+        Get.snackbar(
+          'Error',
+          'No puedes unirte a un curso que creaste',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Validar que no esté ya inscrito
+      if (targetCourse!.studentIds.contains(userId)) {
+        Get.snackbar(
+          'Error',
+          'Ya estás inscrito en este curso',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Unirse al curso
+      _enrollInCourseWithCode(targetCourse, userId);
+    });
+  }
+
+  void _enrollInCourseWithCode(Course course, String userId) async {
+    try {
+      // Agregar el usuario a la lista de estudiantes del curso
+      final updatedStudentIds = List<String>.from(course.studentIds)..add(userId);
+      final updatedCourse = Course(
+        id: course.id,
+        name: course.name,
+        description: course.description,
+        teacherId: course.teacherId,
+        studentIds: updatedStudentIds,
+      );
+
+      // Actualizar el curso en el controlador
+      final courseController = Get.find<CourseController>();
+      await courseController.updateCourse(updatedCourse);
+
+      Get.snackbar(
+        '¡Éxito!',
+        'Te has unido al curso "${course.name}" correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      // Limpiar el campo de código
+      // Esto se puede hacer si tienes una referencia al TextEditingController
+      
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'No se pudo unir al curso: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _showJoinCourseDialog() {

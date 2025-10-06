@@ -70,6 +70,17 @@ class CourseController extends GetxController {
     await getAllCourses(); // Recarga para actualizar el estado del botón
   }
 
+  Future<void> updateCourse(Course course) async {
+    try {
+      await usecase.updateCourse(course);
+      await getAllCourses(); // Recargar la lista de cursos
+      await getTeacherCourses(); // Recargar cursos del profesor
+    } catch (e) {
+      print("Error updating course: $e");
+      rethrow;
+    }
+  }
+
   final enrolledUserIds = <String>[].obs;
 
   Future<void> loadEnrolled(String courseId) async {

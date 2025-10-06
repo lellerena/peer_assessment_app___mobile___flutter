@@ -47,9 +47,10 @@ class _EnrolledStudentsPageState extends State<EnrolledStudentsPage> {
   }
 
   void _generateInvitationCode() {
-    // Generar un código de invitación simple para pruebas
-    final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-    _invitationCode = 'INV${timestamp.substring(timestamp.length - 6)}';
+    // Generar un código de invitación basado en el ID del curso para consistencia
+    final courseId = widget.course.id;
+    final hash = courseId.hashCode.abs();
+    _invitationCode = 'INV${hash.toString().padLeft(6, '0').substring(0, 6)}';
   }
 
   @override
