@@ -5,18 +5,16 @@ import '../../domain/models/index.dart' as CategoryModel;
 
 import '../../domain/usecases/category_usecase.dart';
 import '../../domain/usecases/course_usecase.dart';
-import '../../data/datasources/category_local_data_source.dart';
 
 class CategoryController extends GetxController {
   final RxList<CategoryModel.Category> _categories =
       <CategoryModel.Category>[].obs;
   final CategoryUseCase categoryUseCase;
-  final CategoryLocalDataSource localDataSource;
   final String courseId;
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
 
-  CategoryController(this.categoryUseCase, this.localDataSource, this.courseId);
+  CategoryController(this.categoryUseCase, this.courseId);
 
   RxList<CategoryModel.Category> get categories => _categories;
 
@@ -35,34 +33,13 @@ class CategoryController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = '';
-      print("Getting categories for course: $courseId");
+      print("Getting categories for course: $courseId from Roble");
       
-      // PRIORIZAR ALMACENAMIENTO LOCAL - Los cambios locales son la fuente de verdad
-      try {
-        _categories.value = await localDataSource.getCategories(courseId);
-        print("Categories loaded from local storage: ${_categories.length}");
-        
-        // Solo sincronizar con Roble en segundo plano si hay conexión
-        try {
-          final robleCategories = await categoryUseCase.getCategoriesByCourseId(courseId);
-          print("Roble categories available: ${robleCategories.length}");
-          // No sobrescribir los datos locales, solo sincronizar en segundo plano
-        } catch (e) {
-          print("Roble sync failed, using local data only: $e");
-        }
-      } catch (e) {
-        print("Error loading from local storage: $e");
-        // Solo si falla completamente el local, intentar Roble
-        try {
-          _categories.value = await categoryUseCase.getCategoriesByCourseId(courseId);
-          print("Categories loaded from Roble as fallback: ${_categories.length}");
-        } catch (robleError) {
-          print("Both local and Roble failed: $robleError");
-          _categories.value = [];
-        }
-      }
+      _categories.value = await categoryUseCase.getCategoriesByCourseId(courseId);
+      print("Categories loaded from Roble: ${_categories.length}");
+      
     } catch (e) {
-      print("Critical error getting categories: $e");
+      print("Error loading categories from Roble: $e");
       errorMessage.value = "Error loading categories: $e";
       _categories.value = [];
     } finally {
@@ -85,30 +62,11 @@ class CategoryController extends GetxController {
           CategoryModel.Group(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             name: '[${category.name}] Grupo 1',
-            studentIds: const [],
+            categoryId: category.id,
+            courseId: courseId,
+            studentIds: [],
           ),
         );
-      } else if (category.groupingMethod == CategoryModel.GroupingMethod.random) {
-        // Distribuir estudiantes inscritos en el curso en grupos de tamaño groupSize
-        final courseUseCase = Get.find<CourseUseCase>();
-        final List<String> enrolled = await courseUseCase.getEnrolledUserIds(courseId);
-        final List<String> shuffled = List<String>.from(enrolled)..shuffle();
-
-        final int groupSize = category.groupSize > 0 ? category.groupSize : 2;
-        final int groupCount = (shuffled.length / groupSize).ceil();
-
-        for (int i = 0; i < groupCount; i++) {
-          final start = i * groupSize;
-          final end = (start + groupSize) > shuffled.length ? shuffled.length : (start + groupSize);
-          final members = shuffled.sublist(start, end);
-          initialGroups.add(
-            CategoryModel.Group(
-              id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
-              name: '[${category.name}] Grupo ${i + 1}',
-              studentIds: members,
-            ),
-          );
-        }
       }
 
       final categoryWithCourseId = CategoryModel.Category(
@@ -120,20 +78,15 @@ class CategoryController extends GetxController {
         groups: initialGroups,
       );
 
-      // Intentar agregar a Roble primero
-      try {
-        await categoryUseCase.addCategory(categoryWithCourseId);
-        print("Category added to Roble successfully");
-      } catch (e) {
-        print("Error adding category to Roble: $e");
-      }
-      
-      // Siempre agregar localmente para persistencia
-      await localDataSource.addCategory(categoryWithCourseId);
-      print("Category added to local storage");
+      // Agregar a Roble
+      await categoryUseCase.addCategory(categoryWithCourseId);
+      print("Category added to Roble successfully");
       
       // Actualizar la lista local
       _categories.add(categoryWithCourseId);
+      
+      // Forzar actualización de la UI
+      update();
       
       Get.snackbar(
         'Éxito',
@@ -160,14 +113,10 @@ class CategoryController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       print("Updating category: ${category.name}");
-      
+
       // Obtener la categoría actual para preservar los grupos
-      final currentCategory = _categories.firstWhere(
-        (c) => c.id == category.id,
-        orElse: () => category,
-      );
+      final currentCategory = _categories.firstWhere((c) => c.id == category.id);
       
-      // Asegurar que el courseId se conserve al actualizar y preservar grupos
       final updated = CategoryModel.Category(
         id: category.id,
         name: category.name,
@@ -177,23 +126,18 @@ class CategoryController extends GetxController {
         groups: currentCategory.groups, // Preservar grupos existentes
       );
       
-      // Intentar actualizar en Roble primero
-      try {
-        await categoryUseCase.updateCategory(updated);
-        print("Category updated in Roble successfully");
-      } catch (e) {
-        print("Error updating category in Roble: $e");
-      }
-      
-      // Siempre actualizar localmente para persistencia
-      await localDataSource.updateCategory(updated);
-      print("Category updated in local storage");
+      // Actualizar en Roble
+      await categoryUseCase.updateCategory(updated);
+      print("Category updated in Roble successfully");
       
       // Actualizar la lista local
       final index = _categories.indexWhere((c) => c.id == updated.id);
       if (index != -1) {
         _categories[index] = updated;
       }
+      
+      // Forzar actualización de la UI
+      update();
       
       Get.snackbar(
         'Éxito',
@@ -222,20 +166,15 @@ class CategoryController extends GetxController {
       
       print("Attempting to delete category: ${category.name} (ID: ${category.id})");
       
-      // Intentar eliminar desde Roble primero
-      try {
-        await categoryUseCase.deleteCategory(category);
-        print("Category deleted successfully from Roble");
-      } catch (e) {
-        print("Error deleting category from Roble: $e");
-      }
-      
-      // Siempre eliminar localmente para persistencia
-      await localDataSource.deleteCategory(category.id);
-      print("Category deleted from local storage");
+      // Eliminar de Roble
+      await categoryUseCase.deleteCategory(category);
+      print("Category deleted successfully from Roble");
       
       // Actualizar la lista local
       _categories.removeWhere((c) => c.id == category.id);
+      
+      // Forzar actualización de la UI
+      update();
       
       Get.snackbar(
         'Éxito',
@@ -265,36 +204,37 @@ class CategoryController extends GetxController {
       
       print("Attempting to add group: ${group.name} to category: $categoryId");
       
-      // Intentar agregar desde Roble primero
-      try {
-        await categoryUseCase.addGroup(categoryId, group);
-        print("Group added successfully to Roble");
-        
-        // Actualizar la lista local inmediatamente
-        await _updateCategoryWithNewGroup(categoryId, group);
-        
-        Get.snackbar(
-          'Éxito',
-          'Grupo creado correctamente',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+      // Agregar grupo a Roble
+      await categoryUseCase.addGroup(categoryId, group);
+      print("Group added successfully to Roble");
+      
+      // Actualizar la lista local
+      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
+      if (categoryIndex != -1) {
+        final category = _categories[categoryIndex];
+        final updatedGroups = List<CategoryModel.Group>.from(category.groups)..add(group);
+        final updatedCategory = CategoryModel.Category(
+          id: category.id,
+          name: category.name,
+          groupingMethod: category.groupingMethod,
+          groupSize: category.groupSize,
+          courseId: category.courseId,
+          groups: updatedGroups,
         );
-      } catch (e) {
-        print("Error adding group to Roble: $e");
-        
-        // Fallback: agregar localmente
-        print("Using local fallback for group creation");
-        await _updateCategoryWithNewGroup(categoryId, group);
-        
-        Get.snackbar(
-          'Éxito',
-          'Grupo creado (almacenado localmente)',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
+        _categories[categoryIndex] = updatedCategory;
       }
+      
+      // Forzar actualización de la UI
+      update();
+      
+      Get.snackbar(
+        'Éxito',
+        'Grupo creado correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } catch (e) {
-      print("Critical error adding group: $e");
+      print("Error adding group: $e");
       errorMessage.value = "Error adding group: $e";
       Get.snackbar(
         'Error',
@@ -323,27 +263,34 @@ class CategoryController extends GetxController {
     try {
       isLoading.value = true;
       
-      try {
-        await categoryUseCase.deleteGroup(categoryId, groupId);
-        Get.snackbar(
-          'Éxito',
-          'Grupo eliminado correctamente',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+      // Eliminar grupo de Roble
+      await categoryUseCase.deleteGroup(categoryId, groupId);
+      
+      // Actualizar la lista local
+      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
+      if (categoryIndex != -1) {
+        final category = _categories[categoryIndex];
+        final updatedGroups = category.groups.where((group) => group.id != groupId).toList();
+        final updatedCategory = CategoryModel.Category(
+          id: category.id,
+          name: category.name,
+          groupingMethod: category.groupingMethod,
+          groupSize: category.groupSize,
+          courseId: category.courseId,
+          groups: updatedGroups,
         );
-      } catch (e) {
-        print("Error deleting group from Roble, using local fallback: $e");
-        
-        // Fallback: eliminar grupo localmente
-        await _deleteGroupLocally(categoryId, groupId);
-        
-        Get.snackbar(
-          'Éxito',
-          'Grupo eliminado (almacenado localmente)',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
+        _categories[categoryIndex] = updatedCategory;
       }
+      
+      // Forzar actualización de la UI
+      update();
+      
+      Get.snackbar(
+        'Éxito',
+        'Grupo eliminado correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } catch (e) {
       print("Error deleting group: $e");
       errorMessage.value = "Error deleting group: $e";
@@ -367,21 +314,40 @@ class CategoryController extends GetxController {
       errorMessage.value = '';
       print("Attempting to enroll student: $studentId to group: $groupId in category: $categoryId");
 
-      // 1) Optimista: actualizar local e interfaz de inmediato
-      await _updateGroupWithStudent(categoryId, groupId, studentId, true);
-
-      // 2) Disparar sincronización remota en segundo plano con timeout
-      //    para evitar que la UI quede bloqueada si el backend no responde
-      unawaited(Future(() async {
-        try {
-          await categoryUseCase
-              .enrollStudentToGroup(categoryId, groupId, studentId)
-              .timeout(const Duration(seconds: 3));
-          print("Remote enroll OK");
-        } catch (e) {
-          print("Remote enroll failed or timed out: $e");
-        }
-      }));
+      // Inscribir estudiante en Roble
+      await categoryUseCase.enrollStudentToGroup(categoryId, groupId, studentId);
+      
+      // Actualizar la lista local
+      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
+      if (categoryIndex != -1) {
+        final category = _categories[categoryIndex];
+        final updatedGroups = category.groups.map((group) {
+          if (group.id == groupId && !group.studentIds.contains(studentId)) {
+            return CategoryModel.Group(
+              id: group.id,
+              name: group.name,
+              categoryId: group.categoryId,
+              courseId: group.courseId,
+              studentIds: List<String>.from(group.studentIds)..add(studentId),
+              createdAt: group.createdAt,
+            );
+          }
+          return group;
+        }).toList();
+        
+        final updatedCategory = CategoryModel.Category(
+          id: category.id,
+          name: category.name,
+          groupingMethod: category.groupingMethod,
+          groupSize: category.groupSize,
+          courseId: category.courseId,
+          groups: updatedGroups,
+        );
+        _categories[categoryIndex] = updatedCategory;
+      }
+      
+      // Forzar actualización de la UI
+      update();
 
       Get.snackbar(
         'Éxito',
@@ -390,7 +356,7 @@ class CategoryController extends GetxController {
         colorText: Colors.white,
       );
     } catch (e) {
-      print("Critical error enrolling student: $e");
+      print("Error enrolling student to group: $e");
       errorMessage.value = "Error enrolling student: $e";
       Get.snackbar(
         'Error',
@@ -410,20 +376,40 @@ class CategoryController extends GetxController {
       errorMessage.value = '';
       print("Attempting to remove student: $studentId from group: $groupId in category: $categoryId");
 
-      // 1) Optimista local
-      await _updateGroupWithStudent(categoryId, groupId, studentId, false);
-
-      // 2) Remoto en segundo plano con timeout
-      unawaited(Future(() async {
-        try {
-          await categoryUseCase
-              .removeStudentFromGroup(categoryId, groupId, studentId)
-              .timeout(const Duration(seconds: 3));
-          print("Remote remove OK");
-        } catch (e) {
-          print("Remote remove failed or timed out: $e");
-        }
-      }));
+      // Remover estudiante de Roble
+      await categoryUseCase.removeStudentFromGroup(categoryId, groupId, studentId);
+      
+      // Actualizar la lista local
+      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
+      if (categoryIndex != -1) {
+        final category = _categories[categoryIndex];
+        final updatedGroups = category.groups.map((group) {
+          if (group.id == groupId) {
+            return CategoryModel.Group(
+              id: group.id,
+              name: group.name,
+              categoryId: group.categoryId,
+              courseId: group.courseId,
+              studentIds: group.studentIds.where((id) => id != studentId).toList(),
+              createdAt: group.createdAt,
+            );
+          }
+          return group;
+        }).toList();
+        
+        final updatedCategory = CategoryModel.Category(
+          id: category.id,
+          name: category.name,
+          groupingMethod: category.groupingMethod,
+          groupSize: category.groupSize,
+          courseId: category.courseId,
+          groups: updatedGroups,
+        );
+        _categories[categoryIndex] = updatedCategory;
+      }
+      
+      // Forzar actualización de la UI
+      update();
 
       Get.snackbar(
         'Éxito',
@@ -443,174 +429,6 @@ class CategoryController extends GetxController {
     }
   }
 
-  // Método para limpiar todos los datos locales y forzar uso solo de almacenamiento local
-  Future<void> clearLocalData() async {
-    try {
-      await localDataSource.clearAllData();
-      _categories.clear();
-      print("All local data cleared, starting fresh");
-    } catch (e) {
-      print("Error clearing local data: $e");
-    }
-  }
-
-  // Método para actualizar grupo con estudiante (agregar o remover)
-  Future<void> _updateGroupWithStudent(String categoryId, String groupId, String studentId, bool add) async {
-    try {
-      print("Updating group with student: $studentId (add: $add)");
-      
-      // Encontrar la categoría en la lista
-      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
-      if (categoryIndex == -1) {
-        print("Category not found: $categoryId");
-        return;
-      }
-      
-      final category = _categories[categoryIndex];
-      print("Found category: ${category.name} with ${category.groups.length} groups");
-      
-      // Encontrar el grupo y actualizar la lista de estudiantes
-      final updatedGroups = category.groups.map((group) {
-        if (group.id == groupId) {
-          List<String> updatedStudentIds;
-          if (add) {
-            // Agregar estudiante si no está ya en el grupo
-            if (!group.studentIds.contains(studentId)) {
-              updatedStudentIds = List<String>.from(group.studentIds)..add(studentId);
-              print("Added student $studentId to group ${group.name}");
-            } else {
-              print("Student $studentId already in group ${group.name}");
-              updatedStudentIds = group.studentIds;
-            }
-          } else {
-            // Remover estudiante
-            updatedStudentIds = group.studentIds.where((id) => id != studentId).toList();
-            print("Removed student $studentId from group ${group.name}");
-          }
-          
-          return CategoryModel.Group(
-            id: group.id,
-            name: group.name,
-            studentIds: updatedStudentIds,
-            createdAt: group.createdAt,
-          );
-        }
-        return group;
-      }).toList();
-      
-      // Crear categoría actualizada
-      final updatedCategory = CategoryModel.Category(
-        id: category.id,
-        name: category.name,
-        groupingMethod: category.groupingMethod,
-        groupSize: category.groupSize,
-        courseId: category.courseId,
-        groups: updatedGroups,
-      );
-      
-      // Persistir localmente
-      await localDataSource.updateCategory(updatedCategory);
-      print("Category updated in local storage with student change");
-      
-      // Actualizar la lista local
-      final updatedCategories = List<CategoryModel.Category>.from(_categories);
-      updatedCategories[categoryIndex] = updatedCategory;
-      _categories.value = updatedCategories;
-      
-      print("Group updated successfully. Group now has ${updatedGroups.firstWhere((g) => g.id == groupId).studentIds.length} students");
-    } catch (e) {
-      print("Error updating group with student: $e");
-      rethrow;
-    }
-  }
-
-  // Método para actualizar categoría con nuevo grupo
-  Future<void> _updateCategoryWithNewGroup(String categoryId, CategoryModel.Group group) async {
-    try {
-      print("Updating category with new group: ${group.name}");
-      
-      // Encontrar la categoría en la lista
-      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
-      if (categoryIndex == -1) {
-        print("Category not found: $categoryId");
-        return;
-      }
-      
-      final category = _categories[categoryIndex];
-      print("Found category: ${category.name} with ${category.groups.length} groups");
-      
-      // Crear nueva lista de grupos con el grupo agregado
-      final updatedGroups = List<CategoryModel.Group>.from(category.groups)..add(group);
-      
-      // Crear categoría actualizada
-      final updatedCategory = CategoryModel.Category(
-        id: category.id,
-        name: category.name,
-        groupingMethod: category.groupingMethod,
-        groupSize: category.groupSize,
-        courseId: category.courseId,
-        groups: updatedGroups,
-      );
-      
-      // Persistir localmente
-      await localDataSource.updateCategory(updatedCategory);
-      print("Category updated in local storage with new group");
-      
-      // Actualizar la lista local
-      final updatedCategories = List<CategoryModel.Category>.from(_categories);
-      updatedCategories[categoryIndex] = updatedCategory;
-      _categories.value = updatedCategories;
-      
-      print("Category updated successfully. Now has ${updatedCategory.groups.length} groups");
-    } catch (e) {
-      print("Error updating category with new group: $e");
-      rethrow;
-    }
-  }
-
-
-  // Método de fallback local para eliminar grupos
-  Future<void> _deleteGroupLocally(String categoryId, String groupId) async {
-    try {
-      print("Deleting group locally: $groupId from category: $categoryId");
-      
-      // Obtener la categoría actual
-      final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
-      if (categoryIndex == -1) {
-        print("Category not found in local list");
-        return;
-      }
-      
-      final category = _categories[categoryIndex];
-      print("Found category: ${category.name} with ${category.groups.length} groups");
-      
-      // Remover el grupo de la categoría
-      final updatedGroups = category.groups.where((group) => group.id != groupId).toList();
-      print("Updated groups count: ${updatedGroups.length}");
-      
-      final updatedCategory = CategoryModel.Category(
-        id: category.id,
-        name: category.name,
-        groupingMethod: category.groupingMethod,
-        groupSize: category.groupSize,
-        courseId: category.courseId,
-        groups: updatedGroups,
-      );
-      
-      // Actualizar la lista local
-      final updatedCategories = List<CategoryModel.Category>.from(_categories);
-      updatedCategories[categoryIndex] = updatedCategory;
-      _categories.value = updatedCategories;
-      
-      print("Updated category at index $categoryIndex");
-      print("Group deleted successfully. Category ${updatedCategory.name} now has ${updatedCategory.groups.length} groups");
-    } catch (e) {
-      print("Error deleting group locally: $e");
-      rethrow;
-    }
-  }
-
-
   // Regenerar agrupación aleatoria: redistribuye a TODOS los inscritos en grupos nuevos
   Future<void> regenerateRandomGroups(String categoryId) async {
     try {
@@ -620,25 +438,31 @@ class CategoryController extends GetxController {
         (c) => c.id == categoryId,
         orElse: () => throw Exception('Category not found'),
       );
-      if (current.groupingMethod != CategoryModel.GroupingMethod.random) {
-        throw Exception('Solo aplica para categorías de tipo random');
-      }
 
+      // Obtener todos los estudiantes inscritos en el curso
       final courseUseCase = Get.find<CourseUseCase>();
-      final List<String> enrolled = await courseUseCase.getEnrolledUserIds(courseId);
-      final List<String> shuffled = List<String>.from(enrolled)..shuffle();
-      final int groupSize = current.groupSize > 0 ? current.groupSize : 2;
-      final int groupCount = (shuffled.length / groupSize).ceil();
+      final enrolledStudents = await courseUseCase.getEnrolledUserIds(courseId);
+      print("Found ${enrolledStudents.length} enrolled students for random grouping");
 
+      // Crear grupos aleatorios
       final List<CategoryModel.Group> newGroups = [];
-      for (int i = 0; i < groupCount; i++) {
-        final start = i * groupSize;
-        final end = (start + groupSize) > shuffled.length ? shuffled.length : (start + groupSize);
-        final members = shuffled.sublist(start, end);
+      final int groupSize = current.groupSize;
+      final int totalGroups = (enrolledStudents.length / groupSize).ceil();
+
+      // Mezclar estudiantes aleatoriamente
+      enrolledStudents.shuffle();
+
+      for (int i = 0; i < totalGroups; i++) {
+        final startIndex = i * groupSize;
+        final endIndex = (startIndex + groupSize).clamp(0, enrolledStudents.length);
+        final members = enrolledStudents.sublist(startIndex, endIndex);
+
         newGroups.add(
           CategoryModel.Group(
             id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
             name: '[${current.name}] Grupo ${i + 1}',
+            categoryId: current.id,
+            courseId: current.courseId,
             studentIds: members,
           ),
         );
@@ -653,23 +477,20 @@ class CategoryController extends GetxController {
         groups: newGroups,
       );
 
-      // Actualizar en backend (best-effort)
-      try {
-        await categoryUseCase.updateCategory(updated);
-      } catch (_) {
-        // Ignorar para no bloquear la UX; la fuente de verdad es local
-      }
+      // Actualizar en Roble
+      await categoryUseCase.updateCategory(updated);
+      print("Random groups regenerated in Roble successfully");
 
-      // Persistir localmente para que la UI refleje el cambio de inmediato
-      await localDataSource.updateCategory(updated);
-
-      // Actualizar lista en memoria sin volver a cargar todo
+      // Actualizar lista en memoria
       final index = _categories.indexWhere((c) => c.id == updated.id);
       if (index != -1) {
         final updatedCategories = List<CategoryModel.Category>.from(_categories);
         updatedCategories[index] = updated;
         _categories.value = updatedCategories;
       }
+      
+      // Forzar actualización de la UI
+      update();
     } catch (e) {
       errorMessage.value = 'Error regenerating random groups: $e';
     } finally {

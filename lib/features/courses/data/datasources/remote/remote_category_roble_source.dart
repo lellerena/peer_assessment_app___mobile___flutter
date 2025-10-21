@@ -92,7 +92,42 @@ class RemoteCategoryRobleSource implements ICategorySource {
     // logInfo("Response body: ${response.body}");
     if (response.statusCode == 200) {
       List<dynamic> decodedJson = jsonDecode(response.body);
-      return List<Category>.from(decodedJson.map((x) => Category.fromJson(x)));
+      List<Category> categories = List<Category>.from(decodedJson.map((x) => Category.fromJson(x)));
+      
+      // Cargar todos los grupos del curso en una sola consulta para optimizar rendimiento
+      if (categories.isNotEmpty) {
+        try {
+          logInfo("Loading all groups for course $courseId in single query");
+          final allGroups = await _getAllGroupsForCourse(courseId);
+          
+          // Agrupar los grupos por categoryId
+          final Map<String, List<Group>> groupsByCategory = {};
+          for (final group in allGroups) {
+            groupsByCategory.putIfAbsent(group.categoryId, () => []).add(group);
+          }
+          
+          // Actualizar cada categoría con sus grupos correspondientes
+          for (int i = 0; i < categories.length; i++) {
+            final categoryGroups = groupsByCategory[categories[i].id] ?? [];
+            if (categoryGroups.isNotEmpty) {
+              logInfo("Found ${categoryGroups.length} groups for category ${categories[i].id}");
+              categories[i] = Category(
+                id: categories[i].id,
+                name: categories[i].name,
+                groupingMethod: categories[i].groupingMethod,
+                groupSize: categories[i].groupSize,
+                courseId: categories[i].courseId,
+                groups: categoryGroups,
+              );
+            }
+          }
+        } catch (e) {
+          logError("Error loading groups for course: $e");
+          // Si falla la carga, mantener los grupos del campo groups de la categoría
+        }
+      }
+      
+      return categories;
     } else {
       logError("Got error code ${response.statusCode}");
       return Future.error('Error code ${response.statusCode}');
@@ -227,6 +262,10 @@ class RemoteCategoryRobleSource implements ICategorySource {
   Future<void> addGroup(String categoryId, Group group) async {
     logInfo("Adding group to category $categoryId");
     try {
+      // 1. Guardar el grupo en la tabla groups de Roble
+      await _addGroupToGroupsTable(group);
+      
+      // 2. Actualizar la categoría para incluir el grupo
       final category = await getCategoryById(categoryId);
       final updatedGroups = List<Group>.from(category.groups)..add(group);
       final updatedCategory = Category(
@@ -246,40 +285,214 @@ class RemoteCategoryRobleSource implements ICategorySource {
     }
   }
 
+  // Método privado para obtener todos los grupos de un curso en una sola consulta
+  Future<List<Group>> _getAllGroupsForCourse(String courseId) async {
+    logInfo("Getting all groups for course: $courseId");
+    var uri = Uri.https(baseUrl, '/database/$contract/read', {
+      'tableName': 'groups',
+      'courseId': courseId,
+    });
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    var response = await httpClient.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    logInfo("All groups response status code: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      List<dynamic> decodedJson = jsonDecode(response.body);
+      List<Group> groups = List<Group>.from(decodedJson.map((x) => Group.fromJson(x)));
+      logInfo("Found ${groups.length} total groups for course $courseId");
+      return groups;
+    } else {
+      logError("Got error code ${response.statusCode} when reading all groups");
+      return [];
+    }
+  }
+
+  // Método privado para agregar grupo a la tabla groups
+  Future<void> _addGroupToGroupsTable(Group group) async {
+    logInfo("Adding group to groups table: ${group.toJson()}");
+    final uri = Uri.https(baseUrl, '/database/$contract/insert');
+    
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final body = jsonEncode({
+      'tableName': 'groups',
+      'records': [group.toJsonNoId()],
+    });
+
+    logInfo("Sending group insert request: $body");
+
+    final response = await httpClient.post(uri, headers: headers, body: body);
+
+    logInfo("Group insert response status code: ${response.statusCode}");
+    logInfo("Group insert response body: ${response.body}");
+
+    if (response.statusCode == 201) {
+      logInfo("Group added successfully to groups table");
+      // Parsear respuesta para obtener información de inserción
+      try {
+        final responseData = json.decode(response.body);
+        logInfo("Inserted group records: ${responseData['inserted']}");
+        if (responseData['skipped'] != null && responseData['skipped'].isNotEmpty) {
+          logWarning("Skipped group records: ${responseData['skipped']}");
+        }
+      } catch (e) {
+        logWarning("Could not parse group insert response body: $e");
+      }
+    } else {
+      logError("addGroupToGroupsTable got error code ${response.statusCode}");
+      logError("Response body: ${response.body}");
+      throw Exception('Failed to add group to groups table: ${response.statusCode}');
+    }
+  }
+
   @override
   Future<void> updateGroup(String categoryId, Group updatedGroup) async {
     logInfo("Updating group ${updatedGroup.id} in category $categoryId");
-    final category = await getCategoryById(categoryId);
-    final updatedGroups = category.groups
-        .map((g) => g.id == updatedGroup.id ? updatedGroup : g)
-        .toList();
-    final updatedCategory = Category(
-      id: category.id,
-      name: category.name,
-      groupingMethod: category.groupingMethod,
-      groupSize: category.groupSize,
-      courseId: category.courseId,
-      groups: updatedGroups,
+    try {
+      // Actualizar el grupo en la tabla groups de Roble
+      await _updateGroupInGroupsTable(updatedGroup);
+      logInfo("Group updated successfully in Roble");
+    } catch (e) {
+      logError("Error updating group in Roble: $e");
+      logInfo("Group update failed, will use local fallback");
+    }
+  }
+
+  // Método privado para obtener un grupo desde la tabla groups independiente
+  Future<Group> _getGroupFromGroupsTable(String groupId) async {
+    logInfo("Getting group from groups table: $groupId");
+    var uri = Uri.https(baseUrl, '/database/$contract/read', {
+      'tableName': 'groups',
+      '_id': groupId,
+    });
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    var response = await httpClient.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
     );
-    await updateCategory(updatedCategory);
+    logInfo("Get group response status code: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      List<dynamic> decodedJson = jsonDecode(response.body);
+      if (decodedJson.isNotEmpty) {
+        return Group.fromJson(decodedJson.first);
+      } else {
+        throw Exception('Group with id $groupId not found in groups table');
+      }
+    } else {
+      logError("Got error code ${response.statusCode} when reading group");
+      throw Exception('Failed to get group from groups table: ${response.statusCode}');
+    }
+  }
+
+  // Método privado para actualizar grupo en la tabla groups
+  Future<void> _updateGroupInGroupsTable(Group group) async {
+    logInfo("Updating group in groups table: ${group.toJson()}");
+    logInfo("Group studentIds: ${group.studentIds}");
+    logInfo("Group studentIds type: ${group.studentIds.runtimeType}");
+    
+    try {
+      // Primero intentar obtener el grupo para verificar si existe
+      await _getGroupFromGroupsTable(group.id);
+      logInfo("Group exists, proceeding with update");
+    } catch (e) {
+      logInfo("Group does not exist in groups table, creating it first");
+      await _addGroupToGroupsTable(group);
+      return;
+    }
+    
+    final uri = Uri.https(baseUrl, '/database/$contract/update');
+    
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final updates = {
+      'name': group.name,
+      'categoryIds': group.categoryId, // Corregido: categoryIds en lugar de categoryId
+      'courseId': group.courseId,
+      'studentIds': group.studentIds, // Nombre correcto de la columna
+    };
+
+    final body = jsonEncode({
+      'tableName': 'groups',
+      'idColumn': '_id',
+      'idValue': group.id,
+      'updates': updates,
+    });
+
+    logInfo("Sending group update request: $body");
+
+    final response = await httpClient.put(uri, headers: headers, body: body);
+
+    logInfo("Group update response status code: ${response.statusCode}");
+    logInfo("Group update response body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      logInfo("Group updated successfully in groups table");
+    } else {
+      logError("updateGroupInGroupsTable got error code ${response.statusCode}");
+      logError("Response body: ${response.body}");
+      throw Exception('Failed to update group in groups table: ${response.statusCode}');
+    }
   }
 
   @override
   Future<void> deleteGroup(String categoryId, String groupId) async {
     logInfo("Deleting group $groupId from category $categoryId");
-    final category = await getCategoryById(categoryId);
-    final updatedGroups = category.groups
-        .where((g) => g.id != groupId)
-        .toList();
-    final updatedCategory = Category(
-      id: category.id,
-      name: category.name,
-      groupingMethod: category.groupingMethod,
-      groupSize: category.groupSize,
-      courseId: category.courseId,
-      groups: updatedGroups,
-    );
-    await updateCategory(updatedCategory);
+    try {
+      // Eliminar el grupo de la tabla groups de Roble
+      await _deleteGroupFromGroupsTable(groupId);
+      logInfo("Group deleted successfully from Roble");
+    } catch (e) {
+      logError("Error deleting group from Roble: $e");
+      logInfo("Group deletion failed, will use local fallback");
+    }
+  }
+
+  // Método privado para eliminar grupo de la tabla groups
+  Future<void> _deleteGroupFromGroupsTable(String groupId) async {
+    logInfo("Deleting group from groups table: $groupId");
+    final uri = Uri.https(baseUrl, '/database/$contract/delete');
+    
+    final ILocalPreferences sharedPreferences = Get.find();
+    final token = await sharedPreferences.retrieveData<String>('token');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final body = jsonEncode({
+      'tableName': 'groups',
+      'idColumn': '_id',
+      'idValue': groupId,
+    });
+
+    logInfo("Sending group delete request: $body");
+
+    final response = await httpClient.delete(uri, headers: headers, body: body);
+
+    logInfo("Group delete response status code: ${response.statusCode}");
+    logInfo("Group delete response body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      logInfo("Group deleted successfully from groups table");
+    } else {
+      logError("deleteGroupFromGroupsTable got error code ${response.statusCode}");
+      logError("Response body: ${response.body}");
+      throw Exception('Failed to delete group from groups table: ${response.statusCode}');
+    }
   }
 
   @override
@@ -292,27 +505,29 @@ class RemoteCategoryRobleSource implements ICategorySource {
       "Enrolling student $studentId to group $groupId in category $categoryId",
     );
     try {
-      final category = await getCategoryById(categoryId);
-      final updatedGroups = category.groups.map((g) {
-        if (g.id == groupId && !g.studentIds.contains(studentId)) {
-          return Group(
-            id: g.id,
-            name: g.name,
-            studentIds: List<String>.from(g.studentIds)..add(studentId),
-            createdAt: g.createdAt,
-          );
-        }
-        return g;
-      }).toList();
-      final updatedCategory = Category(
-        id: category.id,
-        name: category.name,
-        groupingMethod: category.groupingMethod,
-        groupSize: category.groupSize,
-        courseId: category.courseId,
-        groups: updatedGroups,
+      // Obtener el grupo actual desde la tabla groups independiente
+      final group = await _getGroupFromGroupsTable(groupId);
+      
+      // Verificar que el estudiante no esté ya en el grupo
+      if (group.studentIds.contains(studentId)) {
+        logInfo("Student $studentId is already in group $groupId");
+        return;
+      }
+      
+      // Crear el grupo actualizado con el nuevo estudiante
+      final updatedGroup = Group(
+        id: group.id,
+        name: group.name,
+        categoryId: group.categoryId,
+        courseId: group.courseId,
+        studentIds: List<String>.from(group.studentIds)..add(studentId),
+        createdAt: group.createdAt,
+        updatedAt: DateTime.now(),
       );
-      await updateCategory(updatedCategory);
+      
+      // Actualizar el grupo en la tabla groups de Roble
+      await _updateGroupInGroupsTable(updatedGroup);
+      
       logInfo("Student enrolled successfully to Roble");
     } catch (e) {
       logError("Error enrolling student to Roble: $e");
@@ -331,27 +546,29 @@ class RemoteCategoryRobleSource implements ICategorySource {
       "Removing student $studentId from group $groupId in category $categoryId",
     );
     try {
-      final category = await getCategoryById(categoryId);
-      final updatedGroups = category.groups.map((g) {
-        if (g.id == groupId && g.studentIds.contains(studentId)) {
-          return Group(
-            id: g.id,
-            name: g.name,
-            studentIds: List<String>.from(g.studentIds)..remove(studentId),
-            createdAt: g.createdAt,
-          );
-        }
-        return g;
-      }).toList();
-      final updatedCategory = Category(
-        id: category.id,
-        name: category.name,
-        groupingMethod: category.groupingMethod,
-        groupSize: category.groupSize,
-        courseId: category.courseId,
-        groups: updatedGroups,
+      // Obtener el grupo actual desde la tabla groups independiente
+      final group = await _getGroupFromGroupsTable(groupId);
+      
+      // Verificar que el estudiante esté en el grupo
+      if (!group.studentIds.contains(studentId)) {
+        logInfo("Student $studentId is not in group $groupId");
+        return;
+      }
+      
+      // Crear el grupo actualizado sin el estudiante
+      final updatedGroup = Group(
+        id: group.id,
+        name: group.name,
+        categoryId: group.categoryId,
+        courseId: group.courseId,
+        studentIds: group.studentIds.where((id) => id != studentId).toList(),
+        createdAt: group.createdAt,
+        updatedAt: DateTime.now(),
       );
-      await updateCategory(updatedCategory);
+      
+      // Actualizar el grupo en la tabla groups de Roble
+      await _updateGroupInGroupsTable(updatedGroup);
+      
       logInfo("Student removed successfully from Roble");
     } catch (e) {
       logError("Error removing student from Roble: $e");

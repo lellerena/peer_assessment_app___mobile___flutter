@@ -40,8 +40,8 @@ class RemoteCourseRobleSource implements ICourseSource {
       'records': [
         {
           ...course.toJsonNoId(),
-          'studentIds': {'data': course.studentIds},
-          'categoryIds': {'data': course.categoryIds},
+          'studentIds': course.studentIds, // Enviar como array directo
+          'categoryIds': course.categoryIds, // Enviar como array directo
         },
       ],
     });
@@ -160,8 +160,8 @@ class RemoteCourseRobleSource implements ICourseSource {
         'idValue': course.id,
         'updates': {
           ...course.toJsonNoId(),
-          'studentIds': {'data': course.studentIds},
-          'categoryIds': {'data': course.categoryIds},
+          'studentIds': course.studentIds, // Enviar como array directo
+          'categoryIds': course.categoryIds, // Enviar como array directo
         },
       }),
     );
@@ -216,7 +216,7 @@ class RemoteCourseRobleSource implements ICourseSource {
         'idColumn': '_id',
         'idValue': courseId,
         'updates': {
-          'studentIds': {'data': currentStudentIds},
+          'studentIds': currentStudentIds, // Enviar como array directo
         },
       }),
     );

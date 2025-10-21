@@ -11,7 +11,6 @@ import '../../features/courses/ui/controllers/course_controller.dart';
 import '../../features/courses/domain/usecases/course_usecase.dart';
 import '../../features/courses/ui/controllers/category_controller.dart';
 import '../../features/courses/domain/usecases/category_usecase.dart';
-import '../../features/courses/data/datasources/category_local_data_source.dart';
 import '../../features/courses/ui/pages/category_page.dart';
 import 'app_routes.dart';
 
@@ -82,7 +81,7 @@ class AppPages {
         // Si ya inyectas CategoryUseCase/Controller en main.dart, puedes omitir esto
         if (!Get.isRegistered<CategoryController>()) {
           Get.lazyPut<CategoryController>(
-            () => CategoryController(Get.find<CategoryUseCase>(), Get.find<CategoryLocalDataSource>(), ''),
+            () => CategoryController(Get.find<CategoryUseCase>(), ''),
           );
         }
       }),

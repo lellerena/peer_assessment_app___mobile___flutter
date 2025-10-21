@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../domain/models/category.dart';
 import '../../domain/models/group.dart';
 import '../../domain/usecases/category_usecase.dart';
-import '../../data/datasources/category_local_data_source.dart';
 import '../controllers/category_controller.dart';
 import '../../domain/models/course.dart';
 import '../controllers/course_controller.dart';
@@ -84,7 +83,7 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
       _controller = Get.find<CategoryController>(tag: tag);
     } else {
       final categoryUseCase = Get.find<CategoryUseCase>();
-      _controller = Get.put(CategoryController(categoryUseCase, Get.find<CategoryLocalDataSource>(), widget.course.id), tag: tag);
+      _controller = Get.put(CategoryController(categoryUseCase, widget.course.id), tag: tag);
     }
   }
 
@@ -333,7 +332,13 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
             ElevatedButton(
               onPressed: () async {
                 final id = DateTime.now().millisecondsSinceEpoch.toString();
-                final newGroup = Group(id: id, name: nameCtrl.text.trim(), studentIds: const []);
+                final newGroup = Group(
+                  id: id, 
+                  name: nameCtrl.text.trim(), 
+                  categoryId: category.id,
+                  courseId: category.courseId,
+                  studentIds: const []
+                );
                 await _controller.addGroup(category.id, newGroup);
                 if (mounted) Navigator.of(context).pop();
               },
@@ -366,7 +371,14 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final updated = Group(id: group.id, name: nameCtrl.text.trim(), studentIds: group.studentIds, createdAt: group.createdAt);
+                final updated = Group(
+                  id: group.id, 
+                  name: nameCtrl.text.trim(), 
+                  categoryId: group.categoryId,
+                  courseId: group.courseId,
+                  studentIds: group.studentIds, 
+                  createdAt: group.createdAt
+                );
                 await _controller.updateGroup(category.id, updated);
                 if (mounted) Navigator.of(context).pop();
               },

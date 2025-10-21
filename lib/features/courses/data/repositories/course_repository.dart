@@ -4,35 +4,35 @@ import '../../domain/models/course.dart';
 import '../../domain/repositories/i_course_repository.dart';
 
 class CourseRepository implements ICourseRepository {
-  final ICourseSource localDataSource;
+  final ICourseSource dataSource;
 
-  CourseRepository(this.localDataSource);
-
-  @override
-  Future<List<Course>> getAll() => localDataSource.getAll();
+  CourseRepository(this.dataSource);
 
   @override
-  Future<List<Course>> getCourses() => localDataSource.getCourses();
+  Future<List<Course>> getAll() => dataSource.getAll();
 
   @override
-  Future<bool> addCourse(Course c) => localDataSource.addCourse(c);
+  Future<List<Course>> getCourses() => dataSource.getCourses();
+
+  @override
+  Future<bool> addCourse(Course c) => dataSource.addCourse(c);
 
   @override
   Future<bool> enrollUser(String courseId, String userId) =>
-      localDataSource.enrollUser(courseId, userId);
+      dataSource.enrollUser(courseId, userId);
 
   @override
   Future<List<String>> getEnrolledUserIds(String courseId) =>
-      localDataSource.getEnrolledUserIds(courseId);
+      dataSource.getEnrolledUserIds(courseId);
 
   @override
   Future<bool> updateCourse(Course course) =>
-      localDataSource.updateCourse(course);
+      dataSource.updateCourse(course);
   @override
   Future<List<Course>> getCoursesByUserId(String userId) =>
-      localDataSource.getCoursesByUserId(userId);
+      dataSource.getCoursesByUserId(userId);
   @override
   Future<List<Course>> getCoursesByTeacherId(String teacherId) {
-    return localDataSource.getCoursesByTeacherId(teacherId);
+    return dataSource.getCoursesByTeacherId(teacherId);
   }
 }
