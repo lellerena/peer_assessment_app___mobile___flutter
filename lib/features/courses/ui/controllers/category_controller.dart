@@ -67,6 +67,9 @@ class CategoryController extends GetxController {
             studentIds: [],
           ),
         );
+      } else if (category.groupingMethod == CategoryModel.GroupingMethod.random) {
+        // Para método random, crear grupos automáticamente con estudiantes aleatorios
+        await _createRandomGroupsForCategory(category, initialGroups);
       }
 
       final categoryWithCourseId = CategoryModel.Category(
@@ -81,6 +84,19 @@ class CategoryController extends GetxController {
       // Agregar a Roble
       await categoryUseCase.addCategory(categoryWithCourseId);
       print("Category added to Roble successfully");
+      
+      // Si se crearon grupos automáticamente, guardarlos individualmente en Roble
+      if (category.groupingMethod == CategoryModel.GroupingMethod.random && initialGroups.isNotEmpty) {
+        for (final group in initialGroups) {
+          try {
+            await categoryUseCase.addGroup(categoryWithCourseId.id, group);
+            print("Group ${group.name} added to Roble successfully");
+          } catch (e) {
+            print("Error adding group ${group.name} to Roble: $e");
+            // Continuar con los demás grupos aunque uno falle
+          }
+        }
+      }
       
       // Actualizar la lista local
       _categories.add(categoryWithCourseId);
@@ -429,6 +445,55 @@ class CategoryController extends GetxController {
     }
   }
 
+  // Método privado para crear grupos aleatorios al crear una categoría
+  Future<void> _createRandomGroupsForCategory(
+    CategoryModel.Category category,
+    List<CategoryModel.Group> initialGroups,
+  ) async {
+    try {
+      // Obtener todos los estudiantes inscritos en el curso
+      final courseUseCase = Get.find<CourseUseCase>();
+      final enrolledStudents = await courseUseCase.getEnrolledUserIds(courseId);
+      print("Found ${enrolledStudents.length} enrolled students for random grouping");
+
+      // Solo crear grupos si hay estudiantes inscritos
+      if (enrolledStudents.isEmpty) {
+        print("No enrolled students found, skipping random group creation");
+        return;
+      }
+
+      // Crear grupos aleatorios
+      final int groupSize = category.groupSize;
+      final int totalGroups = (enrolledStudents.length / groupSize).ceil();
+
+      // Mezclar estudiantes aleatoriamente
+      enrolledStudents.shuffle();
+
+      for (int i = 0; i < totalGroups; i++) {
+        final startIndex = i * groupSize;
+        final endIndex = (startIndex + groupSize).clamp(0, enrolledStudents.length);
+        final members = enrolledStudents.sublist(startIndex, endIndex);
+
+        initialGroups.add(
+          CategoryModel.Group(
+            id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
+            name: '[${category.name}] Grupo ${i + 1}',
+            categoryId: category.id,
+            courseId: category.courseId,
+            studentIds: members,
+          ),
+        );
+        
+        print("Created group: ${initialGroups.last.name} with ${members.length} students: $members");
+      }
+
+      print("Created ${initialGroups.length} random groups with ${enrolledStudents.length} students");
+    } catch (e) {
+      print("Error creating random groups: $e");
+      // No lanzar error, permitir continuar sin grupos
+    }
+  }
+
   // Regenerar agrupación aleatoria: redistribuye a TODOS los inscritos en grupos nuevos
   Future<void> regenerateRandomGroups(String categoryId) async {
     try {
@@ -480,6 +545,17 @@ class CategoryController extends GetxController {
       // Actualizar en Roble
       await categoryUseCase.updateCategory(updated);
       print("Random groups regenerated in Roble successfully");
+
+      // Guardar cada grupo individualmente en la tabla groups de Roble
+      for (final group in newGroups) {
+        try {
+          await categoryUseCase.addGroup(categoryId, group);
+          print("Group ${group.name} added to Roble successfully");
+        } catch (e) {
+          print("Error adding group ${group.name} to Roble: $e");
+          // Continuar con los demás grupos aunque uno falle
+        }
+      }
 
       // Actualizar lista en memoria
       final index = _categories.indexWhere((c) => c.id == updated.id);

@@ -226,6 +226,10 @@ class RemoteCategoryRobleSource implements ICategorySource {
   Future<void> deleteCategory(String id) async {
     logInfo("Deleting category from remote Roble source: $id");
     try {
+      // 1. Primero eliminar todos los grupos asociados a esta categoría
+      await _deleteGroupsByCategoryId(id);
+      
+      // 2. Luego eliminar la categoría
       final ILocalPreferences sharedPreferences = Get.find();
       final token = await sharedPreferences.retrieveData<String>('token');
       final uri = Uri.https(baseUrl, '/database/$contract/delete');
@@ -233,27 +237,80 @@ class RemoteCategoryRobleSource implements ICategorySource {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       };
-      final response = await httpClient.post(
-        uri,
-        headers: headers,
-        body: jsonEncode({'tableName': table, 'idColumn': '_id', 'idValue': id}),
-      );
+      
+      final body = jsonEncode({
+        'tableName': table,
+        'idColumn': '_id',
+        'idValue': id,
+      });
+      
+      logInfo("Sending category delete request: $body");
+      
+      final response = await httpClient.delete(uri, headers: headers, body: body);
+      
+      logInfo("Category delete response status code: ${response.statusCode}");
+      logInfo("Category delete response body: ${response.body}");
+      
       if (response.statusCode == 200) {
         logInfo("Category deleted successfully from Roble");
       } else {
-        final Map<String, dynamic> body = json.decode(response.body);
-        final String errorMessage = body['message'];
-        logError(
-          "DeleteCategory got error code ${response.statusCode}: $errorMessage",
-        );
-        
-        // Fallback: simular eliminación exitosa
-        logInfo("Category deletion simulated (Roble fallback - endpoint not available)");
+        logError("DeleteCategory got error code ${response.statusCode}");
+        logError("Response body: ${response.body}");
+        throw Exception('Failed to delete category from Roble: ${response.statusCode}');
       }
     } catch (e) {
       logError("Error deleting category from Roble: $e");
-      // Fallback: simular eliminación exitosa
-      logInfo("Category deletion simulated (Roble fallback)");
+      // Lanzar el error para que el usuario sepa que la eliminación falló
+      rethrow;
+    }
+  }
+
+  // Método privado para eliminar todos los grupos de una categoría
+  Future<void> _deleteGroupsByCategoryId(String categoryId) async {
+    logInfo("Deleting all groups for category: $categoryId");
+    try {
+      // Obtener todos los grupos de todos los cursos y filtrar por categoryId
+      // Esto evita problemas si la categoría ya no existe
+      final uri = Uri.https(baseUrl, '/database/$contract/read', {
+        'tableName': 'groups',
+        'categoryIds': categoryId,
+      });
+      
+      final ILocalPreferences sharedPreferences = Get.find();
+      final token = await sharedPreferences.retrieveData<String>('token');
+      final headers = {
+        'Authorization': 'Bearer $token',
+      };
+      
+      logInfo("Getting groups for category: $categoryId");
+      
+      final response = await httpClient.get(uri, headers: headers);
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> decodedJson = jsonDecode(response.body);
+        final categoryGroups = decodedJson.map((json) => Group.fromJson(json)).toList();
+        
+        logInfo("Found ${categoryGroups.length} groups to delete for category $categoryId");
+        
+        // Eliminar cada grupo individualmente
+        for (final group in categoryGroups) {
+          try {
+            await _deleteGroupFromGroupsTable(group.id);
+            logInfo("Group ${group.name} deleted successfully");
+          } catch (e) {
+            logError("Error deleting group ${group.name}: $e");
+            // Continuar con los demás grupos aunque uno falle
+          }
+        }
+        
+        logInfo("All groups deleted for category $categoryId");
+      } else {
+        logError("Error getting groups for category $categoryId: ${response.statusCode}");
+        logError("Response body: ${response.body}");
+      }
+    } catch (e) {
+      logError("Error deleting groups for category $categoryId: $e");
+      // No lanzar error, permitir continuar con la eliminación de la categoría
     }
   }
 
@@ -261,6 +318,9 @@ class RemoteCategoryRobleSource implements ICategorySource {
   @override
   Future<void> addGroup(String categoryId, Group group) async {
     logInfo("Adding group to category $categoryId");
+    logInfo("Group data: ${group.toJson()}");
+    logInfo("Group studentIds: ${group.studentIds}");
+    logInfo("Group studentIds type: ${group.studentIds.runtimeType}");
     try {
       // 1. Guardar el grupo en la tabla groups de Roble
       await _addGroupToGroupsTable(group);
