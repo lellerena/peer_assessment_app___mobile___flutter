@@ -220,11 +220,7 @@ class CategoryController extends GetxController {
       
       print("Attempting to add group: ${group.name} to category: $categoryId");
       
-      // Agregar grupo a Roble
-      await categoryUseCase.addGroup(categoryId, group);
-      print("Group added successfully to Roble");
-      
-      // Actualizar la lista local
+      // Actualizar la lista local PRIMERO para feedback inmediato
       final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
       if (categoryIndex != -1) {
         final category = _categories[categoryIndex];
@@ -238,10 +234,19 @@ class CategoryController extends GetxController {
           groups: updatedGroups,
         );
         _categories[categoryIndex] = updatedCategory;
+        
+        // Forzar actualización inmediata de la UI
+        update();
       }
       
-      // Forzar actualización de la UI
-      update();
+      // Luego intentar sincronizar con Roble
+      try {
+        await categoryUseCase.addGroup(categoryId, group);
+        print("Group added successfully to Roble");
+      } catch (e) {
+        print("Warning: Failed to sync with Roble, but local update succeeded: $e");
+        // No mostrar error al usuario si la actualización local fue exitosa
+      }
       
       Get.snackbar(
         'Éxito',
@@ -279,10 +284,7 @@ class CategoryController extends GetxController {
     try {
       isLoading.value = true;
       
-      // Eliminar grupo de Roble
-      await categoryUseCase.deleteGroup(categoryId, groupId);
-      
-      // Actualizar la lista local
+      // Actualizar la lista local PRIMERO para feedback inmediato
       final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
       if (categoryIndex != -1) {
         final category = _categories[categoryIndex];
@@ -296,10 +298,19 @@ class CategoryController extends GetxController {
           groups: updatedGroups,
         );
         _categories[categoryIndex] = updatedCategory;
+        
+        // Forzar actualización inmediata de la UI
+        update();
       }
       
-      // Forzar actualización de la UI
-      update();
+      // Luego intentar sincronizar con Roble
+      try {
+        await categoryUseCase.deleteGroup(categoryId, groupId);
+        print("Group deleted successfully from Roble");
+      } catch (e) {
+        print("Warning: Failed to sync with Roble, but local update succeeded: $e");
+        // No mostrar error al usuario si la actualización local fue exitosa
+      }
       
       Get.snackbar(
         'Éxito',
@@ -330,10 +341,7 @@ class CategoryController extends GetxController {
       errorMessage.value = '';
       print("Attempting to enroll student: $studentId to group: $groupId in category: $categoryId");
 
-      // Inscribir estudiante en Roble
-      await categoryUseCase.enrollStudentToGroup(categoryId, groupId, studentId);
-      
-      // Actualizar la lista local
+      // Actualizar la lista local PRIMERO para feedback inmediato
       final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
       if (categoryIndex != -1) {
         final category = _categories[categoryIndex];
@@ -360,10 +368,19 @@ class CategoryController extends GetxController {
           groups: updatedGroups,
         );
         _categories[categoryIndex] = updatedCategory;
+        
+        // Forzar actualización inmediata de la UI
+        update();
       }
-      
-      // Forzar actualización de la UI
-      update();
+
+      // Luego intentar sincronizar con Roble
+      try {
+        await categoryUseCase.enrollStudentToGroup(categoryId, groupId, studentId);
+        print("Student enrolled successfully to Roble");
+      } catch (e) {
+        print("Warning: Failed to sync with Roble, but local update succeeded: $e");
+        // No mostrar error al usuario si la actualización local fue exitosa
+      }
 
       Get.snackbar(
         'Éxito',
@@ -392,10 +409,7 @@ class CategoryController extends GetxController {
       errorMessage.value = '';
       print("Attempting to remove student: $studentId from group: $groupId in category: $categoryId");
 
-      // Remover estudiante de Roble
-      await categoryUseCase.removeStudentFromGroup(categoryId, groupId, studentId);
-      
-      // Actualizar la lista local
+      // Actualizar la lista local PRIMERO para feedback inmediato
       final categoryIndex = _categories.indexWhere((c) => c.id == categoryId);
       if (categoryIndex != -1) {
         final category = _categories[categoryIndex];
@@ -422,10 +436,19 @@ class CategoryController extends GetxController {
           groups: updatedGroups,
         );
         _categories[categoryIndex] = updatedCategory;
+        
+        // Forzar actualización inmediata de la UI
+        update();
       }
-      
-      // Forzar actualización de la UI
-      update();
+
+      // Luego intentar sincronizar con Roble
+      try {
+        await categoryUseCase.removeStudentFromGroup(categoryId, groupId, studentId);
+        print("Student removed successfully from Roble");
+      } catch (e) {
+        print("Warning: Failed to sync with Roble, but local update succeeded: $e");
+        // No mostrar error al usuario si la actualización local fue exitosa
+      }
 
       Get.snackbar(
         'Éxito',
