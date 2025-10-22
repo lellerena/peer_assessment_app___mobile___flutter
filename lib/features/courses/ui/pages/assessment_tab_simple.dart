@@ -5,10 +5,13 @@ import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/assessment.dart';
 import '../../domain/models/category.dart';
+import '../../domain/models/activity.dart'; // NUEVO: Importar Activity
 import '../controllers/assessment_controller.dart';
 import '../controllers/category_controller.dart';
+import '../controllers/activity_controller.dart'; // NUEVO: Importar ActivityController
 import '../../domain/usecases/assessment_usecase.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart'; // NUEVO: Importar ActivityUseCase
 import '../widgets/assessment_list_tile.dart';
 import '../widgets/add_edit_assessment_dialog.dart';
 import '../pages/student_assessment_page.dart';
@@ -32,17 +35,55 @@ class AssessmentTabSimple extends StatefulWidget {
 class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
   List<Assessment> _assessments = [];
   List<Category> _categories = [];
+  List<Activity> _activities = []; // NUEVO: Lista de actividades
   bool _isLoading = true;
   String _errorMessage = '';
   
-  // Almacenamiento local para evaluaciones (fallback)
-  static final Map<String, List<Assessment>> _localAssessments = {};
-  static final Map<String, String> _assessmentStates = {}; // assessmentId -> status
+  // Controladores para Roble
+  late AssessmentController _assessmentController;
+  late CategoryController _categoryController;
+  late ActivityController _activityController;
 
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
     _loadData();
+  }
+
+  void _initializeControllers() {
+    // Usar tags específicos para este curso
+    final String courseId = widget.course.id;
+    final String categoryTag = 'category_controller_$courseId';
+    final String activityTag = 'activity_controller_$courseId';
+    final String assessmentTag = 'assessment_controller_$courseId';
+    
+    // Crear o obtener controladores con tags específicos
+    if (!Get.isRegistered<CategoryController>(tag: categoryTag)) {
+      Get.put(
+        CategoryController(Get.find<CategoryUseCase>(), courseId),
+        tag: categoryTag,
+      );
+    }
+    
+    if (!Get.isRegistered<ActivityController>(tag: activityTag)) {
+      Get.put(
+        ActivityController(Get.find<ActivityUseCase>(), courseId),
+        tag: activityTag,
+      );
+    }
+    
+    if (!Get.isRegistered<AssessmentController>(tag: assessmentTag)) {
+      Get.put(
+        AssessmentController(Get.find<AssessmentUseCase>(), Get.find<CategoryUseCase>(), courseId),
+        tag: assessmentTag,
+      );
+    }
+    
+    // Obtener las instancias
+    _categoryController = Get.find<CategoryController>(tag: categoryTag);
+    _activityController = Get.find<ActivityController>(tag: activityTag);
+    _assessmentController = Get.find<AssessmentController>(tag: assessmentTag);
   }
 
   Future<List<Category>> _loadLocalCategories() async {
@@ -62,52 +103,23 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
     }
   }
 
-  void _addAssessmentLocally(Assessment assessment) {
-    // Agregar evaluación al almacenamiento local
-    if (!_localAssessments.containsKey(widget.course.id)) {
-      _localAssessments[widget.course.id] = [];
+  // NUEVO: Cargar actividades locales
+  Future<List<Activity>> _loadLocalActivities() async {
+    try {
+      final String activitiesJson = await DefaultAssetBundle.of(context)
+          .loadString('assets/data/activities.json');
+      final List<dynamic> activitiesData = json.decode(activitiesJson);
+      
+      return activitiesData
+          .where((activity) => activity['courseId'] == widget.course.id)
+          .map((activity) => Activity.fromJson(activity))
+          .toList();
+    } catch (e) {
+      print("Error loading local activities: $e");
+      return [];
     }
-    _localAssessments[widget.course.id]!.add(assessment);
-    
-    // Actualizar la UI
-    setState(() {
-      _assessments = List.from(_localAssessments[widget.course.id]!);
-    });
   }
 
-  void _activateAssessmentLocally(String assessmentId) {
-    // Activar evaluación en almacenamiento local
-    _assessmentStates[assessmentId] = 'active';
-    
-    // Actualizar la evaluación en la lista local
-    final courseAssessments = _localAssessments[widget.course.id];
-    if (courseAssessments != null) {
-      for (int i = 0; i < courseAssessments.length; i++) {
-        if (courseAssessments[i].id == assessmentId) {
-          courseAssessments[i] = Assessment(
-            id: courseAssessments[i].id,
-            name: courseAssessments[i].name,
-            description: courseAssessments[i].description,
-            courseId: courseAssessments[i].courseId,
-            categoryId: courseAssessments[i].categoryId,
-            status: AssessmentStatus.active,
-            visibility: courseAssessments[i].visibility,
-            criteria: courseAssessments[i].criteria,
-            startDate: DateTime.now(),
-            endDate: courseAssessments[i].endDate,
-            createdAt: courseAssessments[i].createdAt,
-            updatedAt: DateTime.now(),
-          );
-          break;
-        }
-      }
-    }
-    
-    // Actualizar la UI
-    setState(() {
-      _assessments = List.from(_localAssessments[widget.course.id]!);
-    });
-  }
 
   Future<void> _loadData() async {
     try {
@@ -116,42 +128,26 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         _errorMessage = '';
       });
 
-      // Cargar categorías (con fallback a datos locales)
-      List<Category> categories = [];
-      try {
-        final categoryUseCase = Get.find<CategoryUseCase>();
-        print("Loading categories for course: ${widget.course.id}");
-        categories = await categoryUseCase.getCategoriesByCourseId(widget.course.id);
-        print("Found ${categories.length} categories from remote");
-      } catch (e) {
-        print("Error loading categories from remote, using local data: $e");
-        // Fallback a datos locales si Roble falla
-        categories = await _loadLocalCategories();
-        print("Found ${categories.length} categories from local");
-      }
-      
-      // Cargar evaluaciones (con manejo de error 500 y fallback local)
-      List<Assessment> assessments = [];
-      try {
-        final assessmentUseCase = Get.find<AssessmentUseCase>();
-        assessments = await assessmentUseCase.getAssessmentsByCourseId(widget.course.id);
-      } catch (e) {
-        print("Error loading assessments from Roble, using local storage: $e");
-        // Usar almacenamiento local como fallback
-        assessments = _localAssessments[widget.course.id] ?? [];
-      }
+      // Cargar datos desde Roble usando controladores
+      await Future.wait([
+        _categoryController.getCategories(),
+        _activityController.getActivities(),
+        _assessmentController.getAssessments(),
+      ]);
 
       setState(() {
-        _categories = categories;
-        _assessments = assessments;
+        _categories = _categoryController.categories;
+        _activities = _activityController.activities;
+        _assessments = _assessmentController.assessments;
         _isLoading = false;
       });
     } catch (e) {
-      print("Error loading assessment data: $e");
+      print("Error loading data from Roble: $e");
       setState(() {
         _isLoading = false;
         _errorMessage = "Error loading data: $e";
         _categories = [];
+        _activities = [];
         _assessments = [];
       });
     }
@@ -314,7 +310,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
     );
   }
 
-  void _showAddEditDialog([Assessment? assessment]) {
+  void _showAddEditDialog([Assessment? assessment]) async {
     if (_categories.isEmpty) {
       Get.snackbar(
         'Categorías Requeridas',
@@ -325,12 +321,24 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       return;
     }
 
+    // Refrescar categorías y actividades antes de abrir el diálogo
+    await Future.wait([
+      _categoryController.getCategories(),
+      _activityController.getActivities(),
+    ]);
+    
+    setState(() {
+      _categories = _categoryController.categories;
+      _activities = _activityController.activities;
+    });
+
     showDialog(
       context: context,
       builder: (context) => AddEditAssessmentDialog(
         assessment: assessment,
         courseId: widget.course.id,
         categories: _categories,
+        activities: _activities,
         onSave: (newAssessment) {
           if (assessment == null) {
             _addAssessment(newAssessment);
@@ -372,11 +380,8 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
   Future<void> _addAssessment(Assessment assessment) async {
     try {
-      final assessmentUseCase = Get.find<AssessmentUseCase>();
-      await assessmentUseCase.addAssessment(assessment);
-      
-      // Agregar también al almacenamiento local
-      _addAssessmentLocally(assessment);
+      await _assessmentController.addAssessment(assessment);
+      await _loadData(); // Recargar datos desde Roble
       
       Get.snackbar(
         'Éxito',
@@ -385,15 +390,11 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         colorText: Colors.white,
       );
     } catch (e) {
-      print("Error adding assessment to Roble, using local storage: $e");
-      
-      // Fallback: agregar al almacenamiento local
-      _addAssessmentLocally(assessment);
-      
+      print("Error adding assessment: $e");
       Get.snackbar(
-        'Éxito',
-        'Evaluación creada (almacenada localmente)',
-        backgroundColor: Colors.orange,
+        'Error',
+        'No se pudo crear la evaluación: $e',
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     }
@@ -401,9 +402,9 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
   Future<void> _updateAssessment(Assessment assessment) async {
     try {
-      final assessmentUseCase = Get.find<AssessmentUseCase>();
-      await assessmentUseCase.updateAssessment(assessment);
-      await _loadData();
+      await _assessmentController.updateAssessment(assessment);
+      await _loadData(); // Recargar datos desde Roble
+      
       Get.snackbar(
         'Éxito',
         'Evaluación actualizada correctamente',
@@ -423,9 +424,9 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
   Future<void> _deleteAssessment(Assessment assessment) async {
     try {
-      final assessmentUseCase = Get.find<AssessmentUseCase>();
-      await assessmentUseCase.deleteAssessment(assessment.id);
-      await _loadData();
+      await _assessmentController.deleteAssessment(assessment.id);
+      await _loadData(); // Recargar datos desde Roble
+      
       Get.snackbar(
         'Éxito',
         'Evaluación eliminada correctamente',
@@ -445,11 +446,8 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
   Future<void> _activateAssessment(Assessment assessment) async {
     try {
-      final assessmentUseCase = Get.find<AssessmentUseCase>();
-      await assessmentUseCase.activateAssessment(assessment.id);
-      
-      // También activar localmente
-      _activateAssessmentLocally(assessment.id);
+      await _assessmentController.activateAssessment(assessment.id);
+      await _loadData(); // Recargar datos desde Roble
       
       Get.snackbar(
         'Éxito',
@@ -458,15 +456,11 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         colorText: Colors.white,
       );
     } catch (e) {
-      print("Error activating assessment in Roble, using local fallback: $e");
-      
-      // Fallback: activar localmente
-      _activateAssessmentLocally(assessment.id);
-      
+      print("Error activating assessment: $e");
       Get.snackbar(
-        'Éxito',
-        'Evaluación activada (almacenada localmente)',
-        backgroundColor: Colors.orange,
+        'Error',
+        'No se pudo activar la evaluación: $e',
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     }
@@ -474,9 +468,9 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
   Future<void> _deactivateAssessment(Assessment assessment) async {
     try {
-      final assessmentUseCase = Get.find<AssessmentUseCase>();
-      await assessmentUseCase.deactivateAssessment(assessment.id);
-      await _loadData();
+      await _assessmentController.deactivateAssessment(assessment.id);
+      await _loadData(); // Recargar datos desde Roble
+      
       Get.snackbar(
         'Éxito',
         'Evaluación desactivada correctamente',

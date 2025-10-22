@@ -1,0 +1,42 @@
+[
+  {
+    "id": "act1",
+    "title": "Proyecto React",
+    "description": "Desarrollo de aplicación web con React y TypeScript",
+    "date": "2024-01-15T10:00:00.000Z",
+    "courseId": "c1",
+    "categoryId": "cat1"
+  },
+  {
+    "id": "act2",
+    "title": "Diseño de Base de Datos",
+    "description": "Creación de esquema de base de datos para sistema de gestión",
+    "date": "2024-01-20T14:00:00.000Z",
+    "courseId": "c1",
+    "categoryId": "cat2"
+  },
+  {
+    "id": "act3",
+    "title": "Implementación de Algoritmos",
+    "description": "Desarrollo de algoritmos de ordenamiento y búsqueda",
+    "date": "2024-01-25T09:00:00.000Z",
+    "courseId": "c2",
+    "categoryId": "cat3"
+  },
+  {
+    "id": "act4",
+    "title": "Componentes Reutilizables",
+    "description": "Creación de librería de componentes React",
+    "date": "2024-02-01T11:00:00.000Z",
+    "courseId": "c1",
+    "categoryId": "cat1"
+  },
+  {
+    "id": "act5",
+    "title": "Optimización de Consultas",
+    "description": "Mejora de rendimiento en consultas SQL",
+    "date": "2024-02-05T16:00:00.000Z",
+    "courseId": "c1",
+    "categoryId": "cat2"
+  }
+]

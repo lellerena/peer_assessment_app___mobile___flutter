@@ -10,6 +10,7 @@ class Assessment {
   final String description;
   final String courseId;
   final String categoryId;
+  final String activityId; // NUEVO: Asociación con actividad específica
   final AssessmentStatus status;
   final AssessmentVisibility visibility;
   final DateTime? startDate;
@@ -24,6 +25,7 @@ class Assessment {
     required this.description,
     required this.courseId,
     required this.categoryId,
+    required this.activityId, // NUEVO: Requerido
     required this.status,
     required this.visibility,
     this.startDate,
@@ -40,6 +42,7 @@ class Assessment {
       description: json['description'] ?? '',
       courseId: json['courseId'] ?? '',
       categoryId: json['categoryId'] ?? '',
+      activityId: json['activityId'] ?? '', // NUEVO: Parsear activityId
       status: AssessmentStatus.values.firstWhere(
         (e) => e.toString() == 'AssessmentStatus.${json['status']}',
         orElse: () => AssessmentStatus.draft,
@@ -67,6 +70,7 @@ class Assessment {
       'description': description,
       'courseId': courseId,
       'categoryId': categoryId,
+      'activityId': activityId, // NUEVO: Incluir activityId
       'status': status.name,
       'visibility': visibility.name,
       'startDate': startDate?.toIso8601String(),
@@ -83,6 +87,7 @@ class Assessment {
       'description': description,
       'courseId': courseId,
       'categoryId': categoryId,
+      'activityId': activityId, // NUEVO: Incluir activityId
       'status': status.name,
       'visibility': visibility.name,
       'startDate': startDate?.toIso8601String(),
@@ -95,7 +100,7 @@ class Assessment {
 
   @override
   String toString() {
-    return 'Assessment{id: $id, name: $name, status: $status, courseId: $courseId, categoryId: $categoryId}';
+    return 'Assessment{id: $id, name: $name, status: $status, courseId: $courseId, categoryId: $categoryId, activityId: $activityId}';
   }
 }
 

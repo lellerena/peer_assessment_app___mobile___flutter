@@ -107,47 +107,81 @@ class _CriteriaResponseWidgetState extends State<CriteriaResponseWidget> {
   }
 
   Widget _buildStarsWidget() {
-    final maxStars = widget.criteria.scaleConfig?['max'] ?? 5;
+    final minValue = widget.criteria.scaleConfig?['min'] ?? 2.0;
+    final maxValue = widget.criteria.scaleConfig?['max'] ?? 5.0;
     final labels = widget.criteria.scaleConfig?['labels'] as List<String>?;
+    
+    // Para escala 2.0-5.0, tenemos 4 niveles (2.0, 3.0, 4.0, 5.0)
+    final levels = [2.0, 3.0, 4.0, 5.0];
     
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(maxStars, (index) {
-            final starIndex = index + 1;
-            final isSelected = _currentValue != null && _currentValue >= starIndex;
+          children: List.generate(levels.length, (index) {
+            final levelValue = levels[index];
+            final isSelected = _currentValue != null && _currentValue == levelValue;
             
             return GestureDetector(
               onTap: () {
                 setState(() {
-                  _currentValue = starIndex;
+                  _currentValue = levelValue;
                 });
                 widget.onChanged(_currentValue);
               },
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  isSelected ? Icons.star : Icons.star_border,
-                  color: isSelected ? Colors.amber : Colors.grey,
-                  size: 32,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.amber : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? Colors.amber[700]! : Colors.grey[400]!,
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.star,
+                      color: isSelected ? Colors.white : Colors.grey[600],
+                      size: 24,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      levelValue.toString(),
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[600],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
           }),
         ),
-        if (labels != null && labels.length >= maxStars) ...[
-          const SizedBox(height: 8),
-          Text(
-            _currentValue != null && _currentValue <= labels.length
-                ? labels[_currentValue - 1]
-                : 'Selecciona una calificación',
-            style: TextStyle(
-              fontSize: 14,
-              color: _currentValue != null ? Colors.black87 : Colors.grey,
-              fontWeight: FontWeight.w500,
+        if (labels != null && labels.length >= levels.length) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            textAlign: TextAlign.center,
+            child: Text(
+              _currentValue != null 
+                  ? labels[levels.indexOf(_currentValue)]
+                  : 'Selecciona una calificación',
+              style: TextStyle(
+                fontSize: 14,
+                color: _currentValue != null ? Colors.black87 : Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ],
