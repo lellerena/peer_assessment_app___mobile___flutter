@@ -4,10 +4,13 @@ import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/assessment.dart';
 import '../../domain/models/category.dart';
+import '../../domain/models/activity.dart'; // NUEVO: Importar Activity
 import '../controllers/assessment_controller.dart';
 import '../controllers/category_controller.dart';
+import '../controllers/activity_controller.dart'; // NUEVO: Importar ActivityController
 import '../../domain/usecases/assessment_usecase.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart'; // NUEVO: Importar ActivityUseCase
 import '../widgets/assessment_list_tile.dart';
 import '../widgets/add_edit_assessment_dialog.dart';
 import '../pages/student_assessment_page.dart';
@@ -31,7 +34,9 @@ class AssessmentTab extends StatefulWidget {
 class _AssessmentTabState extends State<AssessmentTab> {
   late AssessmentController _assessmentController;
   late CategoryController _categoryController;
+  late ActivityController _activityController; // NUEVO: Controlador de actividades
   List<Category> _categories = [];
+  List<Activity> _activities = []; // NUEVO: Lista de actividades
   bool _isLoading = true;
 
   @override
@@ -48,22 +53,37 @@ class _AssessmentTabState extends State<AssessmentTab> {
   }
 
   void _initializeControllers() {
-    final String assessmentTag = 'assessment_controller_${widget.course.id}';
-    final String categoryTag = 'category_controller_${widget.course.id}';
+    final String courseId = widget.course.id;
+    final String assessmentTag = 'assessment_controller_$courseId';
+    final String categoryTag = 'category_controller_$courseId';
+    final String activityTag = 'activity_controller_$courseId';
     
-    // Siempre crear nuevos controladores para evitar problemas de estado
-    _assessmentController = AssessmentController(
-      Get.find<AssessmentUseCase>(),
-      Get.find<CategoryUseCase>(),
-      widget.course.id,
-    );
-    Get.put(_assessmentController, tag: assessmentTag);
+    // Crear o obtener controladores con tags específicos
+    if (!Get.isRegistered<AssessmentController>(tag: assessmentTag)) {
+      Get.put(
+        AssessmentController(Get.find<AssessmentUseCase>(), Get.find<CategoryUseCase>(), courseId),
+        tag: assessmentTag,
+      );
+    }
     
-    _categoryController = CategoryController(
-      Get.find<CategoryUseCase>(),
-      widget.course.id,
-    );
-    Get.put(_categoryController, tag: categoryTag);
+    if (!Get.isRegistered<CategoryController>(tag: categoryTag)) {
+      Get.put(
+        CategoryController(Get.find<CategoryUseCase>(), courseId),
+        tag: categoryTag,
+      );
+    }
+    
+    if (!Get.isRegistered<ActivityController>(tag: activityTag)) {
+      Get.put(
+        ActivityController(Get.find<ActivityUseCase>(), courseId),
+        tag: activityTag,
+      );
+    }
+    
+    // Obtener las instancias
+    _assessmentController = Get.find<AssessmentController>(tag: assessmentTag);
+    _categoryController = Get.find<CategoryController>(tag: categoryTag);
+    _activityController = Get.find<ActivityController>(tag: activityTag);
   }
 
   Future<void> _loadData() async {
@@ -77,14 +97,16 @@ class _AssessmentTabState extends State<AssessmentTab> {
         throw Exception("Controllers not initialized");
       }
 
-      // Cargar categorías y evaluaciones
+      // Cargar categorías, actividades y evaluaciones
       await Future.wait([
         _categoryController!.getCategories(),
+        _activityController!.getActivities(), // NUEVO: Cargar actividades
         _assessmentController!.getAssessments(),
       ]);
 
       setState(() {
         _categories = _categoryController!.categories;
+        _activities = _activityController!.activities; // NUEVO: Obtener actividades
         _isLoading = false;
       });
     } catch (e) {
@@ -158,12 +180,23 @@ class _AssessmentTabState extends State<AssessmentTab> {
       return;
     }
 
-    showDialog(
+    // Asegurar datos frescos antes de abrir el diálogo (categorías y actividades)
+    Future.wait([
+      _categoryController.getCategories(),
+      _activityController.getActivities(),
+    ]).then((_) {
+      setState(() {
+        _categories = _categoryController.categories;
+        _activities = _activityController.activities;
+      });
+    }).whenComplete(() {
+      showDialog(
       context: context,
       builder: (context) => AddEditAssessmentDialog(
         assessment: assessment,
         courseId: widget.course.id,
         categories: _categories,
+        activities: _activities, // NUEVO: Pasar actividades
         onSave: (newAssessment) {
           if (assessment == null) {
             _assessmentController.addAssessment(newAssessment);
@@ -172,7 +205,8 @@ class _AssessmentTabState extends State<AssessmentTab> {
           }
         },
       ),
-    );
+      );
+    });
   }
 
   void _showDeleteConfirmation(Assessment assessment) {
