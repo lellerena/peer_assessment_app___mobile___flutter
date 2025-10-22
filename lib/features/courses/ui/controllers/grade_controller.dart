@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:loggy/loggy.dart';
 import '../../domain/models/grade.dart';
 import '../../domain/usecases/grade_usecase.dart';
+import '../../../../core/grade_notification_service.dart';
 
 class GradeController extends GetxController {
   final GradeUsecase _usecase;
@@ -78,6 +79,14 @@ class GradeController extends GetxController {
       
       grades.add(grade);
       logInfo('Calificación creada exitosamente: ${grade.id}');
+      
+      // Notificar que se ha creado una nueva calificación
+      GradeNotificationService.to.notifyGradeAdded(
+        courseId, 
+        activityId, 
+        studentId
+      );
+      
       return true;
     } catch (e) {
       errorMessage.value = 'Error al crear calificación: $e';
@@ -101,6 +110,14 @@ class GradeController extends GetxController {
       }
       
       logInfo('Calificación actualizada exitosamente: ${grade.id}');
+      
+      // Notificar que se ha actualizado una calificación
+      GradeNotificationService.to.notifyGradeModified(
+        grade.courseId, 
+        grade.activityId, 
+        grade.studentId
+      );
+      
       return true;
     } catch (e) {
       errorMessage.value = 'Error al actualizar calificación: $e';

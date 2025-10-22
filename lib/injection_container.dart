@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'core/i_local_preferences.dart';
 import 'core/refresh_client.dart';
 import 'core/local_preferences_secured.dart';
+import 'core/grade_notification_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
@@ -38,6 +39,7 @@ import 'features/courses/ui/controllers/course_controller.dart';
 import 'features/courses/ui/controllers/group_controller.dart';
 import 'features/courses/ui/controllers/submission_controller.dart';
 import 'features/courses/ui/controllers/grade_controller.dart';
+import 'features/courses/ui/controllers/reports_controller.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
 import 'features/courses/data/datasources/datasources.dart';
@@ -50,8 +52,11 @@ Future<void> init() async {
   // External
   final sharedPreferences = await SharedPreferences.getInstance();
   Get.put<ILocalPreferences>(LocalPreferencesSecured());
-
+  
   Get.put<SharedPreferences>(sharedPreferences);
+  
+  // Services
+  Get.put<GradeNotificationService>(GradeNotificationService());
 
   Get.lazyPut<IAuthenticationSource>(
     () => AuthenticationSourceServiceRoble(),
@@ -142,6 +147,20 @@ Future<void> init() async {
   );
   Get.lazyPut(
     () => GradeController(Get.find<GradeUsecase>()),
+    fenix: true,
+  );
+}
+
+// Función para inicializar el controlador de reportes para un curso específico
+void initReportsController(String courseId) {
+  Get.lazyPut(
+    () => ReportsController(
+      Get.find<ActivityUseCase>(),
+      Get.find<GradeUsecase>(),
+      Get.find<CategoryUseCase>(),
+      courseId,
+    ),
+    tag: 'reports_$courseId',
     fenix: true,
   );
 }
