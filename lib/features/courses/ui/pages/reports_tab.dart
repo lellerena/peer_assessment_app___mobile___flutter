@@ -128,76 +128,108 @@ class _ReportsTabState extends State<ReportsTab> {
   }
 
   Widget _buildActivityAverageReport() {
-    final String tag = 'assessment_controller_${widget.course.id}';
-    return GetBuilder<AssessmentController>(
-      tag: tag,
-      builder: (controller) {
-        return Obx(() {
-          final assessments = controller.assessments;
-          
-          if (assessments.isEmpty) {
-            return _PurpleCard(
-              child: Column(
-                children: [
-                  Icon(Icons.analytics, size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay evaluaciones creadas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Crea evaluaciones en la pestaña "Evaluaciones" para ver reportes',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getSimpleActivityReports(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _PurpleCard(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
 
+        if (snapshot.hasError) {
           return _PurpleCard(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.analytics, color: Theme.of(context).primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Reporte por Actividades',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
+                Icon(Icons.error, size: 64, color: Colors.red.shade400),
                 const SizedBox(height: 16),
-                ...assessments.map((assessment) {
-                  // Generar nota aleatoria entre 6.0 y 10.0
-                  final random = (6.0 + (assessment.id.hashCode % 40) / 10).toStringAsFixed(1);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ReportCard(
-                      title: assessment.name,
-                      value: random,
-                      subtitle: 'Promedio de todos los grupos',
-                      color: _getColorForAssessment(assessment.id),
-                    ),
-                  );
-                }),
+                Text(
+                  'Error al cargar reportes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           );
-        });
+        }
+
+        final activities = snapshot.data ?? [];
+        
+        if (activities.isEmpty) {
+          return _PurpleCard(
+            child: Column(
+              children: [
+                Icon(Icons.analytics, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'No hay actividades creadas',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Crea actividades en la pestaña "Actividades" para ver reportes',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return _PurpleCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.analytics, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Reporte por Actividades',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...activities.map((activity) {
+                final averageGrade = activity['averageGrade'] ?? 0.0;
+                final gradedStudents = activity['gradedStudents'] ?? 0;
+                final totalStudents = activity['totalStudents'] ?? 0;
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ReportCard(
+                    title: activity['name'] ?? 'Actividad Desconocida',
+                    value: averageGrade.toStringAsFixed(1),
+                    subtitle: 'Calificados: $gradedStudents/$totalStudents estudiantes',
+                    color: _getColorForActivity(activity['id'] ?? ''),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
       },
     );
   }
@@ -423,9 +455,45 @@ class _ReportsTabState extends State<ReportsTab> {
   }
 
   // Métodos auxiliares
-  Color _getColorForAssessment(String assessmentId) {
+  Color _getColorForActivity(String activityId) {
     final colors = [Colors.green, Colors.blue, Colors.orange, Colors.purple, Colors.teal];
-    return colors[assessmentId.hashCode % colors.length];
+    return colors[activityId.hashCode % colors.length];
+  }
+
+  Future<List<Map<String, dynamic>>> _getSimpleActivityReports() async {
+    try {
+      print('=== OBTENIENDO REPORTES SIMPLES DE ACTIVIDADES ===');
+      
+      // Usar el controlador de actividades existente para obtener datos reales
+      final String tag = 'assessment_controller_${widget.course.id}';
+      final controller = Get.find<AssessmentController>(tag: tag);
+      
+      // Esperar a que se carguen las actividades
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      final assessments = controller.assessments;
+      print('Actividades encontradas: ${assessments.length}');
+      
+      // Convertir a formato simple para reportes
+      final List<Map<String, dynamic>> activityReports = [];
+      
+      for (final assessment in assessments) {
+        // Por ahora mostrar 0, pero en el futuro se puede conectar con grades
+        activityReports.add({
+          'id': assessment.id,
+          'name': assessment.name,
+          'averageGrade': 0.0, // TODO: Conectar con tabla grades
+          'gradedStudents': 0, // TODO: Conectar con tabla grades
+          'totalStudents': 0,  // TODO: Conectar con tabla grades
+        });
+      }
+      
+      print('Reportes de actividades generados: ${activityReports.length}');
+      return activityReports;
+    } catch (e) {
+      print('Error obteniendo reportes simples: $e');
+      return [];
+    }
   }
 
   Color _getColorForGroup(String groupId) {

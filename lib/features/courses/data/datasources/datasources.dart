@@ -13,6 +13,8 @@ export 'i_submission_source.dart';
 export 'remote/remote_submission_roble_source.dart';
 export 'i_assessment_source.dart';
 export 'remote/remote_assessment_roble_source.dart';
+export 'i_grade_source.dart';
+export 'remote/remote_grade_roble_source.dart';
 
 // Group data sources
 export 'i_group_source.dart';
