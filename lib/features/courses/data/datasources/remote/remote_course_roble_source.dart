@@ -15,6 +15,26 @@ class RemoteCourseRobleSource implements ICourseSource {
   // static final List<Course> _courses = [];
   final http.Client httpClient;
 
+  /// Función para parsear studentIds que pueden venir en diferentes formatos de la API
+  List<String> _parseStudentIds(dynamic studentData) {
+    if (studentData == null) {
+      return [];
+    }
+
+    // Caso 1: Handle {"data": [...]}
+    if (studentData is Map<String, dynamic> && studentData.containsKey('data')) {
+      if (studentData['data'] is List) {
+        return List<String>.from(studentData['data']);
+      }
+    }
+    // Caso 2: Handle [...] (array directo)
+    else if (studentData is List) {
+      return List<String>.from(studentData);
+    }
+
+    return [];
+  }
+
   final String contract = 'scheduler_51d857e7d5';
   final String baseUrl = 'roble-api.openlab.uninorte.edu.co';
   String get contractUrl => '$baseUrl/$contract';
@@ -40,8 +60,8 @@ class RemoteCourseRobleSource implements ICourseSource {
       'records': [
         {
           ...course.toJsonNoId(),
-          'studentIds': {'data': course.studentIds},
-          'categoryIds': {'data': course.categoryIds},
+          'studentIds': course.studentIds, // Enviar como array directo
+          'categoryIds': course.categoryIds, // Enviar como array directo
         },
       ],
     });
@@ -116,12 +136,7 @@ class RemoteCourseRobleSource implements ICourseSource {
             description: x['description'],
             categoryIds: categoryIds,
             teacherId: x['teacherId'],
-            studentIds:
-                (x.containsKey('studentIds') &&
-                    x['studentIds'] != null &&
-                    x['studentIds'].containsKey('data'))
-                ? List<String>.from(x['studentIds']['data'])
-                : [],
+            studentIds: _parseStudentIds(x['studentIds']),
           ),
         );
       }
@@ -160,8 +175,8 @@ class RemoteCourseRobleSource implements ICourseSource {
         'idValue': course.id,
         'updates': {
           ...course.toJsonNoId(),
-          'studentIds': {'data': course.studentIds},
-          'categoryIds': {'data': course.categoryIds},
+          'studentIds': course.studentIds, // Enviar como array directo
+          'categoryIds': course.categoryIds, // Enviar como array directo
         },
       }),
     );
@@ -216,7 +231,7 @@ class RemoteCourseRobleSource implements ICourseSource {
         'idColumn': '_id',
         'idValue': courseId,
         'updates': {
-          'studentIds': {'data': currentStudentIds},
+          'studentIds': currentStudentIds, // Enviar como array directo
         },
       }),
     );

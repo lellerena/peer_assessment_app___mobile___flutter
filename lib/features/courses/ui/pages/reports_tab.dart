@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../controllers/category_controller.dart';
-import '../controllers/assessment_controller.dart';
-import '../controllers/course_controller.dart';
 
 class ReportsTab extends StatefulWidget {
   final Course course;
@@ -27,11 +25,12 @@ class _ReportsTabState extends State<ReportsTab> {
 
   Future<void> _loadStudents() async {
     try {
-      final controller = Get.find<CourseController>();
-      final students = await controller.getUsersByIds(widget.course.studentIds);
+      // Por ahora no cargar estudiantes para evitar problemas
+      // TODO: Implementar carga real cuando sea necesario
+      await Future.delayed(const Duration(milliseconds: 100));
       if (mounted) {
         setState(() {
-          _students = students;
+          _students = [];
           _isLoading = false;
         });
       }
@@ -128,76 +127,108 @@ class _ReportsTabState extends State<ReportsTab> {
   }
 
   Widget _buildActivityAverageReport() {
-    final String tag = 'assessment_controller_${widget.course.id}';
-    return GetBuilder<AssessmentController>(
-      tag: tag,
-      builder: (controller) {
-        return Obx(() {
-          final assessments = controller.assessments;
-          
-          if (assessments.isEmpty) {
-            return _PurpleCard(
-              child: Column(
-                children: [
-                  Icon(Icons.analytics, size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay evaluaciones creadas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Crea evaluaciones en la pestaña "Evaluaciones" para ver reportes',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getSimpleActivityReports(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _PurpleCard(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
 
+        if (snapshot.hasError) {
           return _PurpleCard(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.analytics, color: Theme.of(context).primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Reporte por Actividades',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
+                Icon(Icons.error, size: 64, color: Colors.red.shade400),
                 const SizedBox(height: 16),
-                ...assessments.map((assessment) {
-                  // Generar nota aleatoria entre 6.0 y 10.0
-                  final random = (6.0 + (assessment.id.hashCode % 40) / 10).toStringAsFixed(1);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ReportCard(
-                      title: assessment.name,
-                      value: random,
-                      subtitle: 'Promedio de todos los grupos',
-                      color: _getColorForAssessment(assessment.id),
-                    ),
-                  );
-                }),
+                Text(
+                  'Error al cargar reportes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           );
-        });
+        }
+
+        final activities = snapshot.data ?? [];
+        
+        if (activities.isEmpty) {
+          return _PurpleCard(
+            child: Column(
+              children: [
+                Icon(Icons.analytics, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'No hay actividades creadas',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Crea actividades en la pestaña "Actividades" para ver reportes',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return _PurpleCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.analytics, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Reporte por Actividades',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...activities.map((activity) {
+                final averageGrade = activity['averageGrade'] ?? 0.0;
+                final gradedStudents = activity['gradedStudents'] ?? 0;
+                final totalStudents = activity['totalStudents'] ?? 0;
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ReportCard(
+                    title: activity['name'] ?? 'Actividad Desconocida',
+                    value: averageGrade.toStringAsFixed(1),
+                    subtitle: 'Calificados: $gradedStudents/$totalStudents estudiantes',
+                    color: _getColorForActivity(activity['id'] ?? ''),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
       },
     );
   }
@@ -423,9 +454,25 @@ class _ReportsTabState extends State<ReportsTab> {
   }
 
   // Métodos auxiliares
-  Color _getColorForAssessment(String assessmentId) {
+  Color _getColorForActivity(String activityId) {
     final colors = [Colors.green, Colors.blue, Colors.orange, Colors.purple, Colors.teal];
-    return colors[assessmentId.hashCode % colors.length];
+    return colors[activityId.hashCode % colors.length];
+  }
+
+  Future<List<Map<String, dynamic>>> _getSimpleActivityReports() async {
+    try {
+      print('=== OBTENIENDO REPORTES SIMPLES DE ACTIVIDADES ===');
+      
+      // Por ahora retornar datos vacíos para evitar problemas
+      // TODO: Implementar consulta real a la base de datos cuando sea necesario
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      print('Reportes de actividades generados: 0 (datos vacíos por ahora)');
+      return [];
+    } catch (e) {
+      print('Error obteniendo reportes simples: $e');
+      return [];
+    }
   }
 
   Color _getColorForGroup(String groupId) {
@@ -434,19 +481,8 @@ class _ReportsTabState extends State<ReportsTab> {
   }
 
   String _getStudentGroup(String studentId) {
-    final String tag = 'category_controller_${widget.course.id}';
-    try {
-      final controller = Get.find<CategoryController>(tag: tag);
-      for (final category in controller.categories) {
-        for (final group in category.groups) {
-          if (group.studentIds.contains(studentId)) {
-            return group.name;
-          }
-        }
-      }
-    } catch (e) {
-      print("Error getting student group: $e");
-    }
+    // Por ahora retornar grupo genérico para evitar problemas
+    // TODO: Implementar consulta real cuando sea necesario
     return 'Sin grupo';
   }
 }

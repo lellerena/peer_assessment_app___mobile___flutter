@@ -4,54 +4,54 @@ import '../../domain/repositories/i_category_repository.dart';
 import '../../domain/models/index.dart';
 
 class CategoryRepository implements ICategoryRepository {
-  final ICategorySource localDataSource;
+  final ICategorySource remoteDataSource;
 
-  CategoryRepository(this.localDataSource);
+  CategoryRepository(this.remoteDataSource);
 
   @override
   Future<List<Category>> getCategories() async =>
-      await localDataSource.getCategories();
+      await remoteDataSource.getCategories();
 
   @override
   Future<Category> getCategoryById(String id) async =>
-      await localDataSource.getCategoryById(id);
+      await remoteDataSource.getCategoryById(id);
 
   @override
   Future<List<Category>> getCategoriesByCourseId(String courseId) async =>
-      await localDataSource.getCategoriesByCourseId(courseId);
+      await remoteDataSource.getCategoriesByCourseId(courseId);
 
   @override
   Future<bool> addCategory(Category category) async {
-    await localDataSource.addCategory(category);
+    await remoteDataSource.addCategory(category);
     return true;
   }
 
   @override
   Future<bool> updateCategory(Category category) async {
-    await localDataSource.updateCategory(category);
+    await remoteDataSource.updateCategory(category);
     return true;
   }
 
   @override
   Future<bool> deleteCategory(Category category) async {
-    await localDataSource.deleteCategory(category.id);
+    await remoteDataSource.deleteCategory(category.id);
     return true;
   }
 
   // CRUD grupos
   @override
   Future<void> addGroup(String categoryId, Group group) async {
-    await localDataSource.addGroup(categoryId, group);
+    await remoteDataSource.addGroup(categoryId, group);
   }
 
   @override
   Future<void> updateGroup(String categoryId, Group group) async {
-    await localDataSource.updateGroup(categoryId, group);
+    await remoteDataSource.updateGroup(categoryId, group);
   }
 
   @override
   Future<void> deleteGroup(String categoryId, String groupId) async {
-    await localDataSource.deleteGroup(categoryId, groupId);
+    await remoteDataSource.deleteGroup(categoryId, groupId);
   }
 
   @override
@@ -60,7 +60,7 @@ class CategoryRepository implements ICategoryRepository {
     String groupId,
     String studentId,
   ) async {
-    await localDataSource.enrollStudentToGroup(categoryId, groupId, studentId);
+    await remoteDataSource.enrollStudentToGroup(categoryId, groupId, studentId);
   }
 
   @override
@@ -69,7 +69,7 @@ class CategoryRepository implements ICategoryRepository {
     String groupId,
     String studentId,
   ) async {
-    await localDataSource.removeStudentFromGroup(
+    await remoteDataSource.removeStudentFromGroup(
       categoryId,
       groupId,
       studentId,

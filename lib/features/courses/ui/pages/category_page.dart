@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/category.dart';
 import '../../domain/usecases/category_usecase.dart';
-import '../../data/datasources/category_local_data_source.dart';
 import '../controllers/category_controller.dart';
 import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
@@ -27,7 +26,7 @@ class CategoryPage extends StatelessWidget {
       controller = Get.find<CategoryController>(tag: controllerTag);
     } else {
       controller = Get.put(
-        CategoryController(Get.find<CategoryUseCase>(), Get.find<CategoryLocalDataSource>(), courseId), 
+        CategoryController(Get.find<CategoryUseCase>(), courseId), 
         tag: controllerTag
       );
     }
