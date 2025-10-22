@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/assessment.dart';
-import '../../domain/models/category.dart';
+import '../../domain/models/activity.dart';
 import '../controllers/assessment_controller.dart';
-import '../controllers/category_controller.dart';
 import '../../domain/usecases/assessment_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart';
 import '../../domain/usecases/category_usecase.dart';
 import '../widgets/assessment_list_tile.dart';
 import '../widgets/add_edit_assessment_dialog.dart';
@@ -30,8 +30,8 @@ class AssessmentTab extends StatefulWidget {
 
 class _AssessmentTabState extends State<AssessmentTab> {
   late AssessmentController _assessmentController;
-  late CategoryController _categoryController;
-  List<Category> _categories = [];
+  late ActivityUseCase _activityUseCase;
+  List<Activity> _activities = [];
   bool _isLoading = true;
 
   @override
@@ -49,7 +49,6 @@ class _AssessmentTabState extends State<AssessmentTab> {
 
   void _initializeControllers() {
     final String assessmentTag = 'assessment_controller_${widget.course.id}';
-    final String categoryTag = 'category_controller_${widget.course.id}';
     
     // Siempre crear nuevos controladores para evitar problemas de estado
     _assessmentController = AssessmentController(
@@ -59,11 +58,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
     );
     Get.put(_assessmentController, tag: assessmentTag);
     
-    _categoryController = CategoryController(
-      Get.find<CategoryUseCase>(),
-      widget.course.id,
-    );
-    Get.put(_categoryController, tag: categoryTag);
+    _activityUseCase = Get.find<ActivityUseCase>();
   }
 
   Future<void> _loadData() async {
@@ -73,26 +68,34 @@ class _AssessmentTabState extends State<AssessmentTab> {
       });
 
       // Verificar que los controladores estén disponibles
-      if (_assessmentController == null || _categoryController == null) {
+      if (_assessmentController == null || _activityUseCase == null) {
         throw Exception("Controllers not initialized");
       }
 
-      // Cargar categorías y evaluaciones
+      // Cargar actividades y evaluaciones
       await Future.wait([
-        _categoryController!.getCategories(),
+        _loadActivities(),
         _assessmentController!.getAssessments(),
       ]);
 
       setState(() {
-        _categories = _categoryController!.categories;
         _isLoading = false;
       });
     } catch (e) {
       print("Error loading assessment data: $e");
       setState(() {
         _isLoading = false;
-        _categories = [];
+        _activities = [];
       });
+    }
+  }
+
+  Future<void> _loadActivities() async {
+    try {
+      _activities = await _activityUseCase.getActivitiesByCourseId(widget.course.id);
+    } catch (e) {
+      print("Error loading activities: $e");
+      _activities = [];
     }
   }
 
@@ -148,10 +151,10 @@ class _AssessmentTabState extends State<AssessmentTab> {
   }
 
   void _showAddEditDialog([Assessment? assessment]) {
-    if (_categories.isEmpty) {
+    if (_activities.isEmpty) {
       Get.snackbar(
-        'Categorías Requeridas',
-        'Debes crear al menos una categoría antes de crear evaluaciones',
+        'Actividades Requeridas',
+        'Debes crear al menos una actividad antes de crear evaluaciones',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -163,7 +166,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
       builder: (context) => AddEditAssessmentDialog(
         assessment: assessment,
         courseId: widget.course.id,
-        categories: _categories,
+        activities: _activities,
         onSave: (newAssessment) {
           if (assessment == null) {
             _assessmentController.addAssessment(newAssessment);
@@ -260,41 +263,42 @@ class _AssessmentTabState extends State<AssessmentTab> {
         return;
       }
 
-      // Buscar el grupo del estudiante en la categoría
-      final category = _categories.firstWhereOrNull(
-        (c) => c.id == assessment.categoryId,
+      // Buscar la actividad de la evaluación
+      final activity = _activities.firstWhereOrNull(
+        (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
       );
 
-      if (category == null) {
+      if (activity == null) {
         Get.snackbar(
           'Error',
-          'No se encontró la categoría de la evaluación',
+          'No se encontró la actividad de la evaluación',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return;
       }
 
-      final studentGroup = category.groups.firstWhereOrNull(
-        (group) => group.studentIds.contains(studentId),
+      // TODO: Implementar lógica de grupos para actividades
+      // Por ahora, permitir que cualquier estudiante evalúe
+      Get.snackbar(
+        'Evaluación',
+        'Iniciando evaluación: ${assessment.name}',
+        backgroundColor: Colors.blue,
+        colorText: Colors.white,
       );
-
-      if (studentGroup == null) {
-        Get.snackbar(
-          'Sin Grupo',
-          'No estás asignado a un grupo en esta categoría',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-        return;
-      }
+      
+      // Navegar a la página de evaluación
+      // Get.to(() => StudentAssessmentPage(
+      //   assessment: assessment,
+      //   courseId: widget.course.id,
+      // ));
 
       // Navegar a la página de evaluación
       Get.to(() => StudentAssessmentPage(
         assessment: assessment,
         studentId: studentId,
-        groupId: studentGroup.id,
-        categoryId: category.id,
+        groupId: '', // TODO: Implementar lógica de grupos
+        categoryId: activity.id, // Usar activityId como categoryId temporalmente
       ));
     } catch (e) {
       print("Error starting evaluation: $e");
@@ -309,7 +313,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
 
   Widget _buildContent() {
     // Verificar si los controladores están disponibles
-    if (_assessmentController == null || _categoryController == null) {
+    if (_assessmentController == null || _activityUseCase == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -421,13 +425,13 @@ class _AssessmentTabState extends State<AssessmentTab> {
             itemCount: _assessmentController!.assessments.length,
             itemBuilder: (context, index) {
               final assessment = _assessmentController!.assessments[index];
-              final category = _categories.firstWhereOrNull(
-                (c) => c.id == assessment.categoryId,
+              final activity = _activities.firstWhereOrNull(
+                (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
               );
               
               return AssessmentListTile(
                 assessment: assessment,
-                categoryName: category?.name,
+                categoryName: activity?.title ?? 'Actividad no encontrada',
                 onEdit: widget.isTeacher
                     ? () => _showAddEditDialog(assessment)
                     : null,

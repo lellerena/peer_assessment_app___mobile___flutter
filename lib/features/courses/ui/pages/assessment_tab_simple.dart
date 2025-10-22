@@ -4,11 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/assessment.dart';
-import '../../domain/models/category.dart';
+import '../../domain/models/activity.dart';
 import '../controllers/assessment_controller.dart';
-import '../controllers/category_controller.dart';
 import '../../domain/usecases/assessment_usecase.dart';
-import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart';
 import '../widgets/assessment_list_tile.dart';
 import '../widgets/add_edit_assessment_dialog.dart';
 import '../pages/student_assessment_page.dart';
@@ -31,7 +30,7 @@ class AssessmentTabSimple extends StatefulWidget {
 
 class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
   List<Assessment> _assessments = [];
-  List<Category> _categories = [];
+  List<Activity> _activities = [];
   bool _isLoading = true;
   String _errorMessage = '';
   
@@ -45,19 +44,19 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
     _loadData();
   }
 
-  Future<List<Category>> _loadLocalCategories() async {
-    // Cargar categorías desde el archivo JSON local
+  Future<List<Activity>> _loadLocalActivities() async {
+    // Cargar actividades desde el archivo JSON local
     try {
-      final String categoriesJson = await DefaultAssetBundle.of(context)
-          .loadString('assets/data/categories.json');
-      final List<dynamic> categoriesData = json.decode(categoriesJson);
+      final String activitiesJson = await DefaultAssetBundle.of(context)
+          .loadString('assets/data/activities.json');
+      final List<dynamic> activitiesData = json.decode(activitiesJson);
       
-      return categoriesData
-          .where((category) => category['courseId'] == widget.course.id)
-          .map((category) => Category.fromJson(category))
+      return activitiesData
+          .where((activity) => activity['courseId'] == widget.course.id)
+          .map((activity) => Activity.fromJson(activity))
           .toList();
     } catch (e) {
-      print("Error loading local categories: $e");
+      print("Error loading local activities: $e");
       return [];
     }
   }
@@ -116,18 +115,18 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         _errorMessage = '';
       });
 
-      // Cargar categorías (con fallback a datos locales)
-      List<Category> categories = [];
+      // Cargar actividades (con fallback a datos locales)
+      List<Activity> activities = [];
       try {
-        final categoryUseCase = Get.find<CategoryUseCase>();
-        print("Loading categories for course: ${widget.course.id}");
-        categories = await categoryUseCase.getCategoriesByCourseId(widget.course.id);
-        print("Found ${categories.length} categories from remote");
+        final activityUseCase = Get.find<ActivityUseCase>();
+        print("Loading activities for course: ${widget.course.id}");
+        activities = await activityUseCase.getActivitiesByCourseId(widget.course.id);
+        print("Found ${activities.length} activities from remote");
       } catch (e) {
-        print("Error loading categories from remote, using local data: $e");
+        print("Error loading activities from remote, using local data: $e");
         // Fallback a datos locales si Roble falla
-        categories = await _loadLocalCategories();
-        print("Found ${categories.length} categories from local");
+        activities = await _loadLocalActivities();
+        print("Found ${activities.length} activities from local");
       }
       
       // Cargar evaluaciones (con manejo de error 500 y fallback local)
@@ -142,7 +141,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       }
 
       setState(() {
-        _categories = categories;
+        _activities = activities;
         _assessments = assessments;
         _isLoading = false;
       });
@@ -151,7 +150,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       setState(() {
         _isLoading = false;
         _errorMessage = "Error loading data: $e";
-        _categories = [];
+        _activities = [];
         _assessments = [];
       });
     }
@@ -282,13 +281,13 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       itemCount: _assessments.length,
       itemBuilder: (context, index) {
         final assessment = _assessments[index];
-        final category = _categories.firstWhereOrNull(
-          (c) => c.id == assessment.categoryId,
+        final activity = _activities.firstWhereOrNull(
+          (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
         );
         
         return AssessmentListTile(
           assessment: assessment,
-          categoryName: category?.name,
+          categoryName: activity?.title ?? 'Actividad no encontrada',
           onEdit: widget.isTeacher
               ? () => _showAddEditDialog(assessment)
               : null,
@@ -315,10 +314,10 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
   }
 
   void _showAddEditDialog([Assessment? assessment]) {
-    if (_categories.isEmpty) {
+    if (_activities.isEmpty) {
       Get.snackbar(
-        'Categorías Requeridas',
-        'Debes crear al menos una categoría antes de crear evaluaciones',
+        'Actividades Requeridas',
+        'Debes crear al menos una actividad antes de crear evaluaciones',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -330,7 +329,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       builder: (context) => AddEditAssessmentDialog(
         assessment: assessment,
         courseId: widget.course.id,
-        categories: _categories,
+        activities: _activities,
         onSave: (newAssessment) {
           if (assessment == null) {
             _addAssessment(newAssessment);
@@ -527,41 +526,36 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         return;
       }
 
-      // Buscar el grupo del estudiante en la categoría
-      final category = _categories.firstWhereOrNull(
-        (c) => c.id == assessment.categoryId,
+      // Buscar la actividad de la evaluación
+      final activity = _activities.firstWhereOrNull(
+        (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
       );
 
-      if (category == null) {
+      if (activity == null) {
         Get.snackbar(
           'Error',
-          'No se encontró la categoría de la evaluación',
+          'No se encontró la actividad de la evaluación',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return;
       }
 
-      final studentGroup = category.groups.firstWhereOrNull(
-        (group) => group.studentIds.contains(studentId),
+      // TODO: Implementar lógica de grupos para actividades
+      // Por ahora, permitir que cualquier estudiante evalúe
+      Get.snackbar(
+        'Evaluación',
+        'Iniciando evaluación: ${assessment.name}',
+        backgroundColor: Colors.blue,
+        colorText: Colors.white,
       );
-
-      if (studentGroup == null) {
-        Get.snackbar(
-          'Sin Grupo',
-          'No estás asignado a un grupo en esta categoría',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-        return;
-      }
-
+      
       // Navegar a la página de evaluación
       Get.to(() => StudentAssessmentPage(
         assessment: assessment,
         studentId: studentId,
-        groupId: studentGroup.id,
-        categoryId: category.id,
+        groupId: '', // TODO: Implementar lógica de grupos
+        categoryId: activity.id, // Usar activityId como categoryId temporalmente
       ));
     } catch (e) {
       print("Error starting evaluation: $e");
