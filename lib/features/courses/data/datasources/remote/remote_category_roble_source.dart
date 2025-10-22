@@ -31,6 +31,12 @@ class RemoteCategoryRobleSource implements ICategorySource {
     var response = await httpClient.get(
       uri,
       headers: {'Authorization': 'Bearer $token'},
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        logError('Timeout al obtener categorías');
+        throw TimeoutException('La petición tardó demasiado tiempo', const Duration(seconds: 10));
+      },
     );
     logInfo("Response status code: ${response.statusCode}");
     if (response.statusCode == 200) {
@@ -58,6 +64,12 @@ class RemoteCategoryRobleSource implements ICategorySource {
     var response = await httpClient.get(
       uri,
       headers: {'Authorization': 'Bearer $token'},
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        logError('Timeout al obtener categoría por ID');
+        throw TimeoutException('La petición tardó demasiado tiempo', const Duration(seconds: 10));
+      },
     );
     if (response.statusCode == 200) {
       List<dynamic> decodedJson = jsonDecode(response.body);
@@ -87,6 +99,12 @@ class RemoteCategoryRobleSource implements ICategorySource {
     var response = await httpClient.get(
       uri,
       headers: {'Authorization': 'Bearer $token'},
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        logError('Timeout al obtener categorías por curso');
+        throw TimeoutException('La petición tardó demasiado tiempo', const Duration(seconds: 10));
+      },
     );
     logInfo("Response status code: ${response.statusCode}");
     // logInfo("Response body: ${response.body}");
