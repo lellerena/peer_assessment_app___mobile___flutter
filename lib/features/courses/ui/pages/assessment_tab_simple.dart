@@ -88,7 +88,9 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
             name: courseAssessments[i].name,
             description: courseAssessments[i].description,
             courseId: courseAssessments[i].courseId,
-            categoryId: courseAssessments[i].categoryId,
+            activityId: courseAssessments[i].activityId,
+            durationValue: courseAssessments[i].durationValue,
+            durationUnit: courseAssessments[i].durationUnit,
             status: AssessmentStatus.active,
             visibility: courseAssessments[i].visibility,
             criteria: courseAssessments[i].criteria,
@@ -282,7 +284,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
       itemBuilder: (context, index) {
         final assessment = _assessments[index];
         final activity = _activities.firstWhereOrNull(
-          (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
+          (a) => a.id == assessment.activityId,
         );
         
         return AssessmentListTile(
@@ -528,7 +530,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
 
       // Buscar la actividad de la evaluación
       final activity = _activities.firstWhereOrNull(
-        (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
+        (a) => a.id == assessment.activityId,
       );
 
       if (activity == null) {
@@ -555,7 +557,7 @@ class _AssessmentTabSimpleState extends State<AssessmentTabSimple> {
         assessment: assessment,
         studentId: studentId,
         groupId: '', // TODO: Implementar lógica de grupos
-        categoryId: activity.id, // Usar activityId como categoryId temporalmente
+        activityId: activity.id,
       ));
     } catch (e) {
       print("Error starting evaluation: $e");

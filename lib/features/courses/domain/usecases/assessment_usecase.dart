@@ -12,8 +12,8 @@ class AssessmentUseCase {
     return await _repository.getAssessmentsByCourseId(courseId);
   }
 
-  Future<List<Assessment>> getAssessmentsByCategoryId(String categoryId) async {
-    return await _repository.getAssessmentsByCategoryId(categoryId);
+  Future<List<Assessment>> getAssessmentsByActivityId(String activityId) async {
+    return await _repository.getAssessmentsByActivityId(activityId);
   }
 
   Future<Assessment?> getAssessmentById(String assessmentId) async {
@@ -93,7 +93,7 @@ class AssessmentUseCase {
     required String evaluatedId,
     required String courseId,
     required String groupId,
-    required String categoryId,
+    required String activityId,
     required List<CriteriaResponse> criteriaResponses,
     String? comment,
   }) async {
@@ -121,7 +121,7 @@ class AssessmentUseCase {
       evaluatedId: evaluatedId,
       courseId: courseId,
       groupId: groupId,
-      categoryId: categoryId,
+      categoryId: activityId,
       criteriaResponses: criteriaResponses,
       comment: comment,
       submittedAt: DateTime.now(),

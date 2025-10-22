@@ -35,19 +35,16 @@ class _AddEditAssessmentDialogState extends State<AddEditAssessmentDialog> {
     _initializeForm();
   }
 
-  void _initializeForm() {
-    if (widget.assessment != null) {
-      _nameController.text = widget.assessment!.name;
-      _selectedActivityId = widget.assessment!.categoryId; // Usar categoryId como activityId temporalmente
-      _visibility = widget.assessment!.visibility;
-      // Parsear duración desde startDate y endDate si existe
-      if (widget.assessment!.startDate != null && widget.assessment!.endDate != null) {
-        final duration = widget.assessment!.endDate!.difference(widget.assessment!.startDate!);
-        _durationValue = duration.inMinutes;
-        _durationUnit = 'minutes';
+      void _initializeForm() {
+        if (widget.assessment != null) {
+          _nameController.text = widget.assessment!.name;
+          _selectedActivityId = widget.assessment!.activityId; // Usar activityId correctamente
+          _visibility = widget.assessment!.visibility;
+          // Usar los nuevos campos de duración
+          _durationValue = widget.assessment!.durationValue;
+          _durationUnit = widget.assessment!.durationUnit;
+        }
       }
-    }
-  }
 
   @override
   void dispose() {
@@ -306,45 +303,47 @@ class _AddEditAssessmentDialogState extends State<AddEditAssessmentDialog> {
         : Duration(minutes: _durationValue);
     final endDate = now.add(duration);
 
-    final assessment = Assessment(
-      id: widget.assessment?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _nameController.text.trim(),
-      description: 'Evaluación de pares para ${widget.activities.firstWhere((a) => a.id == _selectedActivityId).title}',
-      courseId: widget.courseId,
-      categoryId: _selectedActivityId!, // Usar activityId como categoryId temporalmente
-      status: AssessmentStatus.draft,
-      visibility: _visibility,
-      startDate: now,
-      endDate: endDate,
-      criteria: [
-        AssessmentCriteria(
-          id: 'creatividad',
-          name: 'Creatividad',
-          description: 'Evaluación de la creatividad en el trabajo',
-          scaleType: ScaleType.numeric,
-          isRequired: true,
-          scaleConfig: {'min': 0, 'max': 100},
-        ),
-        AssessmentCriteria(
-          id: 'contenido',
-          name: 'Contenido',
-          description: 'Evaluación del contenido y calidad del trabajo',
-          scaleType: ScaleType.numeric,
-          isRequired: true,
-          scaleConfig: {'min': 0, 'max': 100},
-        ),
-        AssessmentCriteria(
-          id: 'presentacion',
-          name: 'Presentación',
-          description: 'Evaluación de la presentación y claridad',
-          scaleType: ScaleType.numeric,
-          isRequired: true,
-          scaleConfig: {'min': 0, 'max': 100},
-        ),
-      ],
-      createdAt: widget.assessment?.createdAt ?? now,
-      updatedAt: now,
-    );
+        final assessment = Assessment(
+          id: widget.assessment?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text.trim(),
+          description: 'Evaluación de pares para ${widget.activities.firstWhere((a) => a.id == _selectedActivityId).title}',
+          courseId: widget.courseId,
+          activityId: _selectedActivityId!, // Usar activityId correctamente
+          status: AssessmentStatus.draft,
+          visibility: _visibility,
+          durationValue: _durationValue, // Nuevo campo
+          durationUnit: _durationUnit, // Nuevo campo
+          startDate: now,
+          endDate: endDate,
+          criteria: [
+            AssessmentCriteria(
+              id: 'creatividad',
+              name: 'Creatividad',
+              description: 'Evaluación de la creatividad en el trabajo',
+              scaleType: ScaleType.numeric,
+              isRequired: true,
+              scaleConfig: {'min': 0, 'max': 100},
+            ),
+            AssessmentCriteria(
+              id: 'contenido',
+              name: 'Contenido',
+              description: 'Evaluación del contenido y calidad del trabajo',
+              scaleType: ScaleType.numeric,
+              isRequired: true,
+              scaleConfig: {'min': 0, 'max': 100},
+            ),
+            AssessmentCriteria(
+              id: 'presentacion',
+              name: 'Presentación',
+              description: 'Evaluación de la presentación y claridad',
+              scaleType: ScaleType.numeric,
+              isRequired: true,
+              scaleConfig: {'min': 0, 'max': 100},
+            ),
+          ],
+          createdAt: widget.assessment?.createdAt ?? now,
+          updatedAt: now,
+        );
 
     widget.onSave(assessment);
     Navigator.of(context).pop();

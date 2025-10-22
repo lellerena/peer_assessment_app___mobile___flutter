@@ -4,7 +4,7 @@ import '../../domain/models/assessment_response.dart';
 abstract class IAssessmentSource {
   // Assessment CRUD
   Future<List<Assessment>> getAssessmentsByCourseId(String courseId);
-  Future<List<Assessment>> getAssessmentsByCategoryId(String categoryId);
+  Future<List<Assessment>> getAssessmentsByActivityId(String activityId);
   Future<Assessment?> getAssessmentById(String assessmentId);
   Future<bool> addAssessment(Assessment assessment);
   Future<bool> updateAssessment(Assessment assessment);

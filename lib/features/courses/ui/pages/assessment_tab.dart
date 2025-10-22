@@ -54,6 +54,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
     _assessmentController = AssessmentController(
       Get.find<AssessmentUseCase>(),
       Get.find<CategoryUseCase>(),
+      Get.find<ActivityUseCase>(),
       widget.course.id,
     );
     Get.put(_assessmentController, tag: assessmentTag);
@@ -265,7 +266,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
 
       // Buscar la actividad de la evaluación
       final activity = _activities.firstWhereOrNull(
-        (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
+        (a) => a.id == assessment.activityId,
       );
 
       if (activity == null) {
@@ -298,7 +299,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
         assessment: assessment,
         studentId: studentId,
         groupId: '', // TODO: Implementar lógica de grupos
-        categoryId: activity.id, // Usar activityId como categoryId temporalmente
+        activityId: activity.id,
       ));
     } catch (e) {
       print("Error starting evaluation: $e");
@@ -426,7 +427,7 @@ class _AssessmentTabState extends State<AssessmentTab> {
             itemBuilder: (context, index) {
               final assessment = _assessmentController!.assessments[index];
               final activity = _activities.firstWhereOrNull(
-                (a) => a.id == assessment.categoryId, // Usar categoryId como activityId temporalmente
+                (a) => a.id == assessment.activityId,
               );
               
               return AssessmentListTile(

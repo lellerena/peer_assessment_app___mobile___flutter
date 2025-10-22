@@ -9,9 +9,11 @@ class Assessment {
   final String name;
   final String description;
   final String courseId;
-  final String categoryId;
+  final String activityId; // Cambiado de categoryId a activityId
   final AssessmentStatus status;
   final AssessmentVisibility visibility;
+  final int durationValue; // Nuevo campo para duración
+  final String durationUnit; // Nuevo campo para unidad de duración
   final DateTime? startDate;
   final DateTime? endDate;
   final List<AssessmentCriteria> criteria;
@@ -23,9 +25,11 @@ class Assessment {
     required this.name,
     required this.description,
     required this.courseId,
-    required this.categoryId,
+    required this.activityId, // Cambiado de categoryId a activityId
     required this.status,
     required this.visibility,
+    required this.durationValue, // Nuevo campo requerido
+    required this.durationUnit, // Nuevo campo requerido
     this.startDate,
     this.endDate,
     required this.criteria,
@@ -39,7 +43,7 @@ class Assessment {
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       courseId: json['courseId'] ?? '',
-      categoryId: json['categoryId'] ?? '',
+      activityId: json['activityId'] ?? '', // Cambiado de categoryId a activityId
       status: AssessmentStatus.values.firstWhere(
         (e) => e.toString() == 'AssessmentStatus.${json['status']}',
         orElse: () => AssessmentStatus.draft,
@@ -48,6 +52,8 @@ class Assessment {
         (e) => e.toString() == 'AssessmentVisibility.${json['visibility']}',
         orElse: () => AssessmentVisibility.private,
       ),
+      durationValue: json['duration_value'] ?? 60, // Nuevo campo con valor por defecto
+      durationUnit: json['duration_unit'] ?? 'minutes', // Nuevo campo con valor por defecto
       startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
       endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
       criteria: json['criteria'] != null && json['criteria'].containsKey('data')
@@ -66,9 +72,11 @@ class Assessment {
       'name': name,
       'description': description,
       'courseId': courseId,
-      'categoryId': categoryId,
+      'activityId': activityId, // Cambiado de categoryId a activityId
       'status': status.name,
       'visibility': visibility.name,
+      'duration_value': durationValue, // Nuevo campo
+      'duration_unit': durationUnit, // Nuevo campo
       'startDate': startDate?.toIso8601String(),
       'endDate': endDate?.toIso8601String(),
       'criteria': {'data': criteria.map((c) => c.toJson()).toList()},
@@ -82,9 +90,11 @@ class Assessment {
       'name': name,
       'description': description,
       'courseId': courseId,
-      'categoryId': categoryId,
+      'activityId': activityId, // Cambiado de categoryId a activityId
       'status': status.name,
       'visibility': visibility.name,
+      'duration_value': durationValue, // Nuevo campo
+      'duration_unit': durationUnit, // Nuevo campo
       'startDate': startDate?.toIso8601String(),
       'endDate': endDate?.toIso8601String(),
       'criteria': {'data': criteria.map((c) => c.toJson()).toList()},
@@ -95,7 +105,7 @@ class Assessment {
 
   @override
   String toString() {
-    return 'Assessment{id: $id, name: $name, status: $status, courseId: $courseId, categoryId: $categoryId}';
+    return 'Assessment{id: $id, name: $name, status: $status, courseId: $courseId, activityId: $activityId}';
   }
 }
 

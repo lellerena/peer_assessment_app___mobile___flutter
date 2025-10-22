@@ -14,8 +14,8 @@ class AssessmentRepository implements IAssessmentRepository {
   }
 
   @override
-  Future<List<Assessment>> getAssessmentsByCategoryId(String categoryId) async {
-    return await _source.getAssessmentsByCategoryId(categoryId);
+  Future<List<Assessment>> getAssessmentsByActivityId(String activityId) async {
+    return await _source.getAssessmentsByActivityId(activityId);
   }
 
   @override

@@ -8,6 +8,7 @@ import '../controllers/assessment_controller.dart';
 import '../../domain/models/category.dart';
 import '../../domain/usecases/category_usecase.dart';
 import '../../domain/usecases/assessment_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart';
 import '../widgets/add_edit_category_dialog.dart';
 import '../widgets/category_list_tile.dart';
 import '../../../../core/i_local_preferences.dart';
@@ -97,7 +98,7 @@ class _CourseDetailTabbedState extends State<_CourseDetailTabbed> {
     final String assessmentTag = 'assessment_controller_${widget.course.id}';
     if (!Get.isRegistered<AssessmentController>(tag: assessmentTag)) {
       Get.put(
-        AssessmentController(Get.find<AssessmentUseCase>(), Get.find<CategoryUseCase>(), widget.course.id),
+        AssessmentController(Get.find<AssessmentUseCase>(), Get.find<CategoryUseCase>(), Get.find<ActivityUseCase>(), widget.course.id),
         tag: assessmentTag,
       );
     }

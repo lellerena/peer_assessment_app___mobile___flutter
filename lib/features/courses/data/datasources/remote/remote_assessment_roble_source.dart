@@ -15,7 +15,7 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   final String contract = 'scheduler_51d857e7d5';
   final String baseUrl = 'roble-api.openlab.uninorte.edu.co';
   String get contractUrl => '$baseUrl/$contract';
-  final String assessmentTable = 'assessments';
+  final String assessmentTable = 'assessment'; // Cambiado para coincidir con la tabla en Roble
   final String responseTable = 'assessment_responses';
 
   RemoteAssessmentRobleSource({http.Client? client})
@@ -58,12 +58,12 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   }
 
   @override
-  Future<List<Assessment>> getAssessmentsByCategoryId(String categoryId) async {
-    logInfo('Fetching assessments for categoryId: $categoryId');
+  Future<List<Assessment>> getAssessmentsByActivityId(String activityId) async {
+    logInfo('Fetching assessments for activityId: $activityId');
 
     var uri = Uri.https(baseUrl, '/database/$contract/read', {
       'tableName': assessmentTable,
-      'filter': jsonEncode({'categoryId': categoryId}),
+      'filter': jsonEncode({'activityId': activityId}),
     });
 
     final ILocalPreferences sharedPreferences = Get.find();

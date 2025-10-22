@@ -10,14 +10,14 @@ class StudentAssessmentPage extends StatefulWidget {
   final Assessment assessment;
   final String studentId;
   final String groupId;
-  final String categoryId;
+  final String activityId;
 
   const StudentAssessmentPage({
     Key? key,
     required this.assessment,
     required this.studentId,
     required this.groupId,
-    required this.categoryId,
+    required this.activityId,
   }) : super(key: key);
 
   @override
@@ -58,7 +58,7 @@ class _StudentAssessmentPageState extends State<StudentAssessmentPage> {
       // Obtener los estudiantes del grupo excluyendo al evaluador
       final categories = _categoryController.categories;
       final category = categories.firstWhere(
-        (c) => c.id == widget.categoryId,
+        (c) => c.id == widget.activityId,
         orElse: () => throw Exception('Category not found'),
       );
       
@@ -424,7 +424,7 @@ class _StudentAssessmentPageState extends State<StudentAssessmentPage> {
           evaluatorId: widget.studentId,
           evaluatedId: studentId,
           groupId: widget.groupId,
-          categoryId: widget.categoryId,
+          activityId: widget.activityId,
           criteriaResponses: _responses[studentId] ?? [],
           comment: _comments[studentId],
         );

@@ -4,10 +4,12 @@ import '../../domain/models/assessment_response.dart';
 import '../../domain/models/category.dart';
 import '../../domain/usecases/assessment_usecase.dart';
 import '../../domain/usecases/category_usecase.dart';
+import '../../domain/usecases/activity_usecase.dart';
 
 class AssessmentController extends GetxController {
   final AssessmentUseCase assessmentUseCase;
   final CategoryUseCase categoryUseCase;
+  final ActivityUseCase activityUseCase;
   final String courseId;
 
   final RxList<Assessment> _assessments = <Assessment>[].obs;
@@ -15,7 +17,7 @@ class AssessmentController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
 
-  AssessmentController(this.assessmentUseCase, this.categoryUseCase, this.courseId);
+  AssessmentController(this.assessmentUseCase, this.categoryUseCase, this.activityUseCase, this.courseId);
 
   List<Assessment> get assessments => _assessments;
   List<AssessmentResponse> get responses => _responses;
@@ -133,7 +135,7 @@ class AssessmentController extends GetxController {
     required String evaluatorId,
     required String evaluatedId,
     required String groupId,
-    required String categoryId,
+    required String activityId,
     required List<CriteriaResponse> criteriaResponses,
     String? comment,
   }) async {
@@ -145,7 +147,7 @@ class AssessmentController extends GetxController {
         evaluatedId: evaluatedId,
         courseId: courseId,
         groupId: groupId,
-        categoryId: categoryId,
+        activityId: activityId,
         criteriaResponses: criteriaResponses,
         comment: comment,
       );
