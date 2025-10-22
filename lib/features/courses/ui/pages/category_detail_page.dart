@@ -203,6 +203,7 @@ class _CategoryDetailContentState extends State<_CategoryDetailContent> {
                                     : current.groups.any((g) => g.studentIds.contains(currentUserId));
 
                                 return _GroupsList(
+                                  key: ValueKey('${current.id}_${groups.length}_${groups.map((g) => '${g.id}_${g.studentIds.length}').join('_')}'),
                                   groups: groups,
                                   isTeacher: widget.isTeacher,
                                   category: current,
@@ -679,6 +680,7 @@ class _GroupsList extends StatelessWidget {
   final Future<void> Function(Group) onJoinGroup;
 
   const _GroupsList({
+    super.key,
     required this.groups,
     required this.isTeacher,
     required this.category,
