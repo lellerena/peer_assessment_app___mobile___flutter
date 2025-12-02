@@ -51,15 +51,23 @@ class Assessment {
         (e) => e.toString() == 'AssessmentVisibility.${json['visibility']}',
         orElse: () => AssessmentVisibility.private,
       ),
-      startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'])
+          : null,
       endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
-      criteria: json['criteria'] != null && json['criteria'].containsKey('data')
+      criteria:
+          json['activeCriteria'] != null &&
+              json['activeCriteria'].containsKey('data')
           ? List<AssessmentCriteria>.from(
-              (json['criteria']['data'] as List).map((c) => AssessmentCriteria.fromJson(c)),
+              (json['activeCriteria']['data'] as List).map(
+                (c) => AssessmentCriteria.fromJson(c),
+              ),
             )
           : [],
       createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
     );
   }
 
@@ -69,13 +77,13 @@ class Assessment {
       'name': name,
       'description': description,
       'courseId': courseId,
-      'categoryId': categoryId,
+      // 'categoryId': categoryId,
       'activityId': activityId, // NUEVO: Incluir activityId
       'status': status.name,
       'visibility': visibility.name,
       'startDate': startDate?.toIso8601String(),
       'endDate': endDate?.toIso8601String(),
-      'criteria': {'data': criteria.map((c) => c.toJson()).toList()},
+      'activeCriteria': {'data': criteria.map((c) => c.toJson()).toList()},
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -86,13 +94,13 @@ class Assessment {
       'name': name,
       'description': description,
       'courseId': courseId,
-      'categoryId': categoryId,
+      // 'categoryId': categoryId,
       'activityId': activityId, // NUEVO: Incluir activityId
       'status': status.name,
       'visibility': visibility.name,
       'startDate': startDate?.toIso8601String(),
       'endDate': endDate?.toIso8601String(),
-      'criteria': {'data': criteria.map((c) => c.toJson()).toList()},
+      'activeCriteria': {'data': criteria.map((c) => c.toJson()).toList()},
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -110,7 +118,8 @@ class AssessmentCriteria {
   final String description;
   final ScaleType scaleType;
   final bool isRequired;
-  final Map<String, dynamic>? scaleConfig; // Para configuraciones específicas de cada tipo
+  final Map<String, dynamic>?
+  scaleConfig; // Para configuraciones específicas de cada tipo
 
   AssessmentCriteria({
     required this.id,

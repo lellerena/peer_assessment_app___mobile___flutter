@@ -15,7 +15,7 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   final String contract = 'scheduler_51d857e7d5';
   final String baseUrl = 'roble-api.openlab.uninorte.edu.co';
   String get contractUrl => '$baseUrl/$contract';
-  final String assessmentTable = 'assessments';
+  final String assessmentTable = 'assessment';
   final String responseTable = 'assessment_responses';
 
   RemoteAssessmentRobleSource({http.Client? client})
@@ -49,7 +49,9 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
       final assessments = List<Assessment>.from(
         decodedJson.map((x) => Assessment.fromJson(x)),
       );
-      logInfo("Fetched ${assessments.length} assessments for courseId from remote source");
+      logInfo(
+        "Fetched ${assessments.length} assessments for courseId from remote source",
+      );
       return assessments;
     } else {
       logError("Got error code ${response.statusCode}");
@@ -76,7 +78,9 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
 
     if (response.statusCode == 200) {
       List<dynamic> decodedJson = jsonDecode(response.body);
-      return List<Assessment>.from(decodedJson.map((x) => Assessment.fromJson(x)));
+      return List<Assessment>.from(
+        decodedJson.map((x) => Assessment.fromJson(x)),
+      );
     } else {
       logError("Got error code ${response.statusCode}");
       return Future.error('Error code ${response.statusCode}');
@@ -135,11 +139,14 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
 
       if (response.statusCode == 201) {
         logInfo("Assessment added successfully to Roble");
+        logInfo("Response body: ${response.body}");
         return true;
       } else {
         final Map<String, dynamic> responseBody = json.decode(response.body);
         final String errorMessage = responseBody['message'];
-        logError("addAssessment got error code ${response.statusCode}: $errorMessage");
+        logError(
+          "addAssessment got error code ${response.statusCode}: $errorMessage",
+        );
         // Fallback: simular éxito para que la UI funcione
         logInfo("Assessment creation simulated (Roble fallback)");
         return true;
@@ -182,8 +189,12 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
     } else {
       final Map<String, dynamic> body = json.decode(response.body);
       final String errorMessage = body['message'];
-      logError("UpdateAssessment got error code ${response.statusCode}: $errorMessage");
-      return Future.error('UpdateAssessment error code ${response.statusCode}: $errorMessage');
+      logError(
+        "UpdateAssessment got error code ${response.statusCode}: $errorMessage",
+      );
+      return Future.error(
+        'UpdateAssessment error code ${response.statusCode}: $errorMessage',
+      );
     }
   }
 
@@ -216,15 +227,19 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
     } else {
       final Map<String, dynamic> body = json.decode(response.body);
       final String errorMessage = body['message'];
-      logError("DeleteAssessment got error code ${response.statusCode}: $errorMessage");
-      return Future.error('DeleteAssessment error code ${response.statusCode}: $errorMessage');
+      logError(
+        "DeleteAssessment got error code ${response.statusCode}: $errorMessage",
+      );
+      return Future.error(
+        'DeleteAssessment error code ${response.statusCode}: $errorMessage',
+      );
     }
   }
 
   @override
   Future<bool> activateAssessment(String assessmentId) async {
     logInfo("Activating assessment: $assessmentId");
-    
+
     try {
       final ILocalPreferences sharedPreferences = Get.find();
       final token = await sharedPreferences.retrieveData<String>('token');
@@ -256,10 +271,14 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
       } else {
         final Map<String, dynamic> body = json.decode(response.body);
         final String errorMessage = body['message'];
-        logError("ActivateAssessment got error code ${response.statusCode}: $errorMessage");
-        
+        logError(
+          "ActivateAssessment got error code ${response.statusCode}: $errorMessage",
+        );
+
         // Fallback: simular activación exitosa
-        logInfo("Assessment activation simulated (Roble fallback - table doesn't exist)");
+        logInfo(
+          "Assessment activation simulated (Roble fallback - table doesn't exist)",
+        );
         return true;
       }
     } catch (e) {
@@ -306,15 +325,21 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
       try {
         final Map<String, dynamic> body = json.decode(response.body);
         final String errorMessage = body['message'] ?? response.body;
-        logError("DeactivateAssessment got error code ${response.statusCode}: $errorMessage");
+        logError(
+          "DeactivateAssessment got error code ${response.statusCode}: $errorMessage",
+        );
         if (response.statusCode >= 500 ||
             errorMessage.toLowerCase().contains('relation') &&
-            errorMessage.toLowerCase().contains('assessments') &&
-            errorMessage.toLowerCase().contains('does not exist')) {
-          logInfo('Fallback: simulating assessment deactivation due to remote error.');
+                errorMessage.toLowerCase().contains('assessments') &&
+                errorMessage.toLowerCase().contains('does not exist')) {
+          logInfo(
+            'Fallback: simulating assessment deactivation due to remote error.',
+          );
           return true;
         }
-        return Future.error('DeactivateAssessment error code ${response.statusCode}: $errorMessage');
+        return Future.error(
+          'DeactivateAssessment error code ${response.statusCode}: $errorMessage',
+        );
       } catch (e) {
         logError('DeactivateAssessment unexpected error parsing body: $e');
         // fallback optimista
@@ -325,7 +350,9 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
 
   // Assessment Responses CRUD
   @override
-  Future<List<AssessmentResponse>> getResponsesByAssessmentId(String assessmentId) async {
+  Future<List<AssessmentResponse>> getResponsesByAssessmentId(
+    String assessmentId,
+  ) async {
     logInfo('Fetching responses for assessmentId: $assessmentId');
 
     var uri = Uri.https(baseUrl, '/database/$contract/read', {
@@ -356,8 +383,13 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   }
 
   @override
-  Future<List<AssessmentResponse>> getResponsesByEvaluatorId(String evaluatorId, String assessmentId) async {
-    logInfo('Fetching responses for evaluatorId: $evaluatorId, assessmentId: $assessmentId');
+  Future<List<AssessmentResponse>> getResponsesByEvaluatorId(
+    String evaluatorId,
+    String assessmentId,
+  ) async {
+    logInfo(
+      'Fetching responses for evaluatorId: $evaluatorId, assessmentId: $assessmentId',
+    );
 
     var uri = Uri.https(baseUrl, '/database/$contract/read', {
       'tableName': responseTable,
@@ -387,15 +419,17 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   }
 
   @override
-  Future<List<AssessmentResponse>> getResponsesByGroupId(String groupId, String assessmentId) async {
-    logInfo('Fetching responses for groupId: $groupId, assessmentId: $assessmentId');
+  Future<List<AssessmentResponse>> getResponsesByGroupId(
+    String groupId,
+    String assessmentId,
+  ) async {
+    logInfo(
+      'Fetching responses for groupId: $groupId, assessmentId: $assessmentId',
+    );
 
     var uri = Uri.https(baseUrl, '/database/$contract/read', {
       'tableName': responseTable,
-      'filter': jsonEncode({
-        'groupId': groupId,
-        'assessmentId': assessmentId,
-      }),
+      'filter': jsonEncode({'groupId': groupId, 'assessmentId': assessmentId}),
     });
 
     final ILocalPreferences sharedPreferences = Get.find();
@@ -463,7 +497,11 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
       'records': [response.toJsonNoId()],
     });
 
-    final response_http = await httpClient.post(uri, headers: headers, body: body);
+    final response_http = await httpClient.post(
+      uri,
+      headers: headers,
+      body: body,
+    );
     logInfo("Response status code: ${response_http.statusCode}");
 
     if (response_http.statusCode == 201) {
@@ -472,7 +510,9 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
     } else {
       final Map<String, dynamic> body = json.decode(response_http.body);
       final String errorMessage = body['message'];
-      logError("addResponse got error code ${response_http.statusCode}: $errorMessage");
+      logError(
+        "addResponse got error code ${response_http.statusCode}: $errorMessage",
+      );
       return Future.error('AddResponse error code ${response_http.statusCode}');
     }
   }
@@ -507,8 +547,12 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
     } else {
       final Map<String, dynamic> body = json.decode(response_http.body);
       final String errorMessage = body['message'];
-      logError("UpdateResponse got error code ${response_http.statusCode}: $errorMessage");
-      return Future.error('UpdateResponse error code ${response_http.statusCode}: $errorMessage');
+      logError(
+        "UpdateResponse got error code ${response_http.statusCode}: $errorMessage",
+      );
+      return Future.error(
+        'UpdateResponse error code ${response_http.statusCode}: $errorMessage',
+      );
     }
   }
 
@@ -541,15 +585,25 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
     } else {
       final Map<String, dynamic> body = json.decode(response.body);
       final String errorMessage = body['message'];
-      logError("DeleteResponse got error code ${response.statusCode}: $errorMessage");
-      return Future.error('DeleteResponse error code ${response.statusCode}: $errorMessage');
+      logError(
+        "DeleteResponse got error code ${response.statusCode}: $errorMessage",
+      );
+      return Future.error(
+        'DeleteResponse error code ${response.statusCode}: $errorMessage',
+      );
     }
   }
 
   // Verificaciones
   @override
-  Future<bool> hasStudentEvaluated(String evaluatorId, String evaluatedId, String assessmentId) async {
-    logInfo("Checking if student $evaluatorId has evaluated $evaluatedId in assessment $assessmentId");
+  Future<bool> hasStudentEvaluated(
+    String evaluatorId,
+    String evaluatedId,
+    String assessmentId,
+  ) async {
+    logInfo(
+      "Checking if student $evaluatorId has evaluated $evaluatedId in assessment $assessmentId",
+    );
 
     var uri = Uri.https(baseUrl, '/database/$contract/read', {
       'tableName': responseTable,
@@ -578,10 +632,16 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   }
 
   @override
-  Future<List<String>> getStudentsToEvaluate(String evaluatorId, String groupId, String assessmentId) async {
+  Future<List<String>> getStudentsToEvaluate(
+    String evaluatorId,
+    String groupId,
+    String assessmentId,
+  ) async {
     // Esta lógica debería obtener los estudiantes del grupo excluyendo al evaluador
     // Por ahora retornamos una lista vacía, se implementará con la lógica de grupos
-    logInfo("Getting students to evaluate for evaluator $evaluatorId in group $groupId");
+    logInfo(
+      "Getting students to evaluate for evaluator $evaluatorId in group $groupId",
+    );
     return [];
   }
 
@@ -589,13 +649,17 @@ class RemoteAssessmentRobleSource implements IAssessmentSource {
   Future<bool> isAssessmentActive(String assessmentId) async {
     final assessment = await getAssessmentById(assessmentId);
     if (assessment == null) return false;
-    
+
     return assessment.status == AssessmentStatus.active &&
-           (assessment.endDate == null || assessment.endDate!.isAfter(DateTime.now()));
+        (assessment.endDate == null ||
+            assessment.endDate!.isAfter(DateTime.now()));
   }
 
   @override
-  Future<bool> canStudentSubmitResponse(String studentId, String assessmentId) async {
+  Future<bool> canStudentSubmitResponse(
+    String studentId,
+    String assessmentId,
+  ) async {
     return await isAssessmentActive(assessmentId);
   }
 }
