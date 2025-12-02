@@ -22,7 +22,8 @@ class RemoteCourseRobleSource implements ICourseSource {
     }
 
     // Caso 1: Handle {"data": [...]}
-    if (studentData is Map<String, dynamic> && studentData.containsKey('data')) {
+    if (studentData is Map<String, dynamic> &&
+        studentData.containsKey('data')) {
       if (studentData['data'] is List) {
         return List<String>.from(studentData['data']);
       }
@@ -141,7 +142,7 @@ class RemoteCourseRobleSource implements ICourseSource {
         );
       }
       logInfo("Fetched ${courses.length} courses from remote source");
-      logInfo("Courses: ${courses[3].toJson()}");
+      // logInfo("Courses: ${courses[3].toJson()}");
     } else {
       logError("Got error code ${response.statusCode}");
       return Future.error('Error code ${response.statusCode}');
